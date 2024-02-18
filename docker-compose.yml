@@ -3,6 +3,5 @@ services:
     image: gotify/server
     ports:
       - 8080:80
-      - 1025:1025
     volumes:
       - ./test-server:/app/data
