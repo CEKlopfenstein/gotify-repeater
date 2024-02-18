@@ -3,3 +3,4 @@ vendor
 build
 *.so
 test-server
+.vscode
