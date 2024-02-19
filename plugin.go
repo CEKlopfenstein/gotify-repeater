@@ -26,15 +26,35 @@ func GetGotifyPluginInfo() plugin.Info {
 	return info
 }
 
-// MyPlugin is the gotify plugin instance.
-type MyPlugin struct {
-	userCtx    plugin.UserContext
-	msgHandler plugin.MessageHandler
-	config     *Config
-	listener   *websocket.Conn
+// GotifyRepeaterPlugin is the gotify plugin instance.
+type GotifyRepeaterPlugin struct {
+	userCtx  plugin.UserContext
+	config   *Config
+	listener *websocket.Conn
 }
 
-func (c *MyPlugin) StartRepeater() {
+type GotifyMessageStruct struct {
+	Appid    int
+	Date     string
+	Extras   []byte
+	Id       int
+	Message  string
+	Title    string
+	Priority int
+}
+
+type DiscordWebhookPayload struct {
+	Content string `json:"content"`
+}
+
+func (c *GotifyRepeaterPlugin) StartRepeater() {
+	// Kill existing connection if it already is started
+	if c.listener != nil {
+		listener := c.listener
+		c.listener = nil
+		listener.Close()
+	}
+
 	var attemptTick = -1
 	var attemptLimit = 100
 	log.Println("Repeater Attempting to Connect")
@@ -92,44 +112,34 @@ func (c *MyPlugin) StartRepeater() {
 	log.Println("Repeater Connected")
 	go func() {
 		for {
-			_, message, err := ws.ReadMessage()
+			gotifyMessage := GotifyMessageStruct{}
+			err := ws.ReadJSON(&gotifyMessage)
 			if err != nil && c.listener != nil {
-				log.Println("Error Reading Message", err)
+				log.Println("Failed to Read in Gotify Message from Stream:", err)
 				return
 			} else if c.listener == nil {
 				return
 			}
 
-			type test struct {
-				Appid    int
-				Date     string
-				Extras   []byte
-				Id       int
-				Message  string
-				Title    string
-				Priority int
-			}
-			data := test{}
-			json.Unmarshal(message, &data)
-			type discordhook struct {
-				Content string `json:"content"`
-			}
-			var discordSend = discordhook{Content: "# " + data.Title + "\n\n" + data.Message}
-			byteData, err := json.Marshal(&discordSend)
+			var discordPayload = DiscordWebhookPayload{Content: "# " + gotifyMessage.Title + "\n\n" + gotifyMessage.Message}
+
+			discordBytePayload, err := json.Marshal(&discordPayload)
 			if err != nil {
-				log.Println(err.Error())
+				log.Println("Failed To Build Discord Webhook Payload:", err.Error())
+				continue
 			}
-			resp, err := http.Post(c.config.DiscordWebHook, "application/json", bytes.NewReader(byteData))
+			resp, err := http.Post(c.config.DiscordWebHook, "application/json", bytes.NewReader(discordBytePayload))
 			if err != nil {
-				log.Println(err.Error())
+				log.Println("Failed to Send Discord Webhook:", err.Error())
+				continue
 			} else if resp.StatusCode != http.StatusNoContent {
-				log.Println(resp.Status)
+				log.Println("Discord Webhook returned response other than 204. Response:", resp.Status)
 			}
 		}
 	}()
 }
 
-func (c *MyPlugin) StopRepeater() {
+func (c *GotifyRepeaterPlugin) StopRepeater() {
 	if c.listener != nil {
 		listener := c.listener
 		c.listener = nil
@@ -138,18 +148,18 @@ func (c *MyPlugin) StopRepeater() {
 }
 
 // Enable enables the plugin.
-func (c *MyPlugin) Enable() error {
+func (c *GotifyRepeaterPlugin) Enable() error {
 	go c.StartRepeater()
 	return nil
 }
 
 // Disable disables the plugin.
-func (c *MyPlugin) Disable() error {
+func (c *GotifyRepeaterPlugin) Disable() error {
 	c.StopRepeater()
 	return nil
 }
 
-func (c *MyPlugin) GetDisplay(location *url.URL) string {
+func (c *GotifyRepeaterPlugin) GetDisplay(location *url.URL) string {
 	var toReturn = ""
 
 	toReturn += "Version: " + info.Version + "\n\nDescription: " + info.Description + "\n\n"
@@ -165,7 +175,7 @@ type Config struct {
 }
 
 // Set Default Values of Config
-func (c *MyPlugin) DefaultConfig() interface{} {
+func (c *GotifyRepeaterPlugin) DefaultConfig() interface{} {
 	return &Config{
 		DiscordWebHook: "",
 		ClientToken:    "",
@@ -173,7 +183,7 @@ func (c *MyPlugin) DefaultConfig() interface{} {
 	}
 }
 
-func (c *MyPlugin) ValidateAndSetConfig(cd interface{}) error {
+func (c *GotifyRepeaterPlugin) ValidateAndSetConfig(cd interface{}) error {
 	config := cd.(*Config)
 	// Validation of Discord Webhook
 	if len(config.DiscordWebHook) == 0 {
@@ -213,13 +223,9 @@ func (c *MyPlugin) ValidateAndSetConfig(cd interface{}) error {
 	return nil
 }
 
-func (c *MyPlugin) SetMessageHandler(h plugin.MessageHandler) {
-	c.msgHandler = h
-}
-
 // NewGotifyPluginInstance creates a plugin instance for a user context.
 func NewGotifyPluginInstance(ctx plugin.UserContext) plugin.Plugin {
-	return &MyPlugin{userCtx: ctx}
+	return &GotifyRepeaterPlugin{userCtx: ctx}
 }
 
 func main() {
