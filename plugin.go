@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -15,7 +16,7 @@ import (
 
 var info = plugin.Info{
 	ModulePath:  "github.com/CEKlopfenstein/gotify-repeater",
-	Version:     "2024.0.4",
+	Version:     "2024.0.6",
 	Author:      "CEKlopfenstein",
 	Description: "A simple Plugin that provides the ability to pass notifications recieved throught to discord. (Current Implementation. More planned.)",
 	Name:        "Gotify Repeater",
@@ -44,7 +45,19 @@ type GotifyMessageStruct struct {
 }
 
 type DiscordWebhookPayload struct {
-	Content string `json:"content"`
+	Content  string `json:"content"`
+	Username string `json:"username"`
+}
+
+type GotifyApplication struct {
+	DefaultPriority int
+	Description     string
+	Id              int
+	Image           string
+	Internal        bool
+	LastUsed        string
+	Name            string
+	Token           string
 }
 
 func (c *GotifyRepeaterPlugin) StartRepeater() {
@@ -121,7 +134,31 @@ func (c *GotifyRepeaterPlugin) StartRepeater() {
 				return
 			}
 
-			var discordPayload = DiscordWebhookPayload{Content: "# " + gotifyMessage.Title + "\n\n" + gotifyMessage.Message}
+			username := info.Name
+			applicationURL, err := url.Parse(c.config.ServerURL)
+			if err == nil {
+				applicationURL.Path = "/application"
+				applicationURL.RawQuery = query.Encode()
+				gotifyApplicationsResp, err := http.Get(applicationURL.String())
+				if err == nil {
+					gotifyApplicationsBytes, err := io.ReadAll(gotifyApplicationsResp.Body)
+					if err == nil {
+						arrayOfApps := []GotifyApplication{}
+						err = json.Unmarshal(gotifyApplicationsBytes, &arrayOfApps)
+						if err == nil {
+							for i := 0; i < len(arrayOfApps); i++ {
+								if arrayOfApps[i].Id == gotifyMessage.Appid {
+									username = arrayOfApps[i].Name
+									break
+								}
+							}
+						}
+					}
+					gotifyApplicationsResp.Body.Close()
+				}
+			}
+
+			var discordPayload = DiscordWebhookPayload{Username: username, Content: "# " + gotifyMessage.Title + "\n\n" + gotifyMessage.Message}
 
 			discordBytePayload, err := json.Marshal(&discordPayload)
 			if err != nil {
@@ -164,7 +201,8 @@ func (c *GotifyRepeaterPlugin) GetDisplay(location *url.URL) string {
 
 	toReturn += "Version: " + info.Version + "\n\nDescription: " + info.Description + "\n\n"
 
-	toReturn += "In order to have this plugin function correctly 3 values are needed within. `discordwebhook`, `clienttoken`, and `serverurl`.\n\n`serverurl` can often be left as the default. Unless you enable HTTPS or wish to have the the plugin listen through some other URL. Note this can allow you to have the plugin listen to a different server entirely. This is not advised. As reconnection after a lost connection is not attempted at this time.\n\n`clienttoken` is the client the plugin will connect as. This can be any client you desire. It would be advisable to create it's own client in the Client Menu.\n\n`discordwebhool` is the webhook the plugin will use to send out messages. Currently the name is not modified by the plugin. So the username will be what ever it was set to at creation."
+	toReturn += "In order to have this plugin function correctly 3 values are needed within. `discordwebhook`, `clienttoken`, and `serverurl`.\n\n`serverurl` can often be left as the default. Unless you enable HTTPS or wish to have the the plugin listen through some other URL. Note this can allow you to have the plugin listen to a different server entirely. This is not advised. As reconnection after a lost connection is not attempted at this time.\n\n`clienttoken` is the client the plugin will connect as. This can be any client you desire. It would be advisable to create it's own client in the Client Menu.\n\n`discordwebhool` is the webhook the plugin will use to send out messages. The Webhooks Username will be the name of the application that. If this fails for any reason it will be the Plugin Name seen in the Plugin Info."
+
 	return toReturn
 }
 

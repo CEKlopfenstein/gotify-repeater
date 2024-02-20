@@ -8,7 +8,7 @@ The goal of this plugin is to enable Gotify to send out notifications through se
 I have a few things that support Gotify for notifications but not something else I use. That and I'd like a centralized places to direct all the notifications within my homelab. Is this the best method? Who knows. But let's have fun doing it.
 
 ## Plans (In order of priority)
-- [ ] Basic Discord Webhook integration
+- [x] Basic Discord Webhook integration
 - [ ] User Friendly configuration
 - [ ] Embedded Discord Webhook integration
 - [ ] Automated Releases
