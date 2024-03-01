@@ -16,7 +16,7 @@ import (
 
 var info = plugin.Info{
 	ModulePath:  "github.com/CEKlopfenstein/gotify-repeater",
-	Version:     "2024.0.6",
+	Version:     "2024.1.x",
 	Author:      "CEKlopfenstein",
 	Description: "A simple Plugin that provides the ability to pass notifications recieved throught to discord. (Current Implementation. More planned.)",
 	Name:        "Gotify Repeater",
@@ -37,7 +37,6 @@ type GotifyRepeaterPlugin struct {
 type GotifyMessageStruct struct {
 	Appid    int
 	Date     string
-	Extras   []byte
 	Id       int
 	Message  string
 	Title    string
