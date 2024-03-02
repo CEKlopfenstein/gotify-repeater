@@ -11,10 +11,11 @@ import (
 )
 
 type Repeater struct {
-	listener  *websocket.Conn
-	host      string
-	streamUrl string
-	token     string
+	listener      *websocket.Conn
+	host          string
+	streamUrl     string
+	token         string
+	sendFunctions []func(GotifyMessageStruct)
 }
 
 type GotifyMessageStruct struct {
@@ -87,9 +88,38 @@ func (repeater *Repeater) startSender() {
 			if err != nil {
 				log.Println("Failed to Read in Gotify Message from Stream:", err)
 			}
-			log.Println("Message:", gotifyMessage)
+			for sender := 0; sender < len(repeater.sendFunctions); sender++ {
+				repeater.sendFunctions[sender](gotifyMessage)
+			}
 		}
 	}()
+}
+
+func (repeater *Repeater) AddSender(sender func(GotifyMessageStruct)) int {
+	repeater.sendFunctions = append(repeater.sendFunctions, sender)
+	return len(repeater.sendFunctions) - 1
+}
+
+func (repeater *Repeater) ClearSenders() int {
+	var count = len(repeater.sendFunctions)
+
+	repeater.sendFunctions = []func(GotifyMessageStruct){}
+
+	return count
+}
+
+func (repeater *Repeater) RemoveSender(index int) {
+	var newSendersArray = []func(GotifyMessageStruct){}
+	for senderIndex := 0; senderIndex < len(repeater.sendFunctions); senderIndex++ {
+		if senderIndex != index {
+			newSendersArray = append(newSendersArray, repeater.sendFunctions[senderIndex])
+		} else {
+			newSendersArray = append(newSendersArray, func(msg GotifyMessageStruct) {
+				// Blank to preserve indexes already returned.
+			})
+		}
+	}
+	repeater.sendFunctions = newSendersArray
 }
 
 func (repeater *Repeater) Stop() error {
