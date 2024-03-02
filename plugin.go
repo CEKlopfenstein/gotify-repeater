@@ -32,15 +32,7 @@ type GotifyRepeaterPlugin struct {
 	userCtx  plugin.UserContext
 	config   *Config
 	listener *websocket.Conn
-}
-
-type GotifyMessageStruct struct {
-	Appid    int
-	Date     string
-	Id       int
-	Message  string
-	Title    string
-	Priority int
+	repeater *Repeater
 }
 
 type DiscordWebhookPayload struct {
@@ -128,6 +120,10 @@ func (c *GotifyRepeaterPlugin) StartRepeater() {
 			err := ws.ReadJSON(&gotifyMessage)
 			if err != nil && c.listener != nil {
 				log.Println("Failed to Read in Gotify Message from Stream:", err)
+				c.listener.Close()
+				c.listener = nil
+				log.Println("Restarting Connection")
+				c.StartRepeater()
 				return
 			} else if c.listener == nil {
 				return
@@ -186,12 +182,16 @@ func (c *GotifyRepeaterPlugin) StopRepeater() {
 // Enable enables the plugin.
 func (c *GotifyRepeaterPlugin) Enable() error {
 	go c.StartRepeater()
+	c.repeater = &Repeater{}
+	c.repeater.SetUrlAndToken(c.config.ServerURL, c.config.ClientToken)
+	go c.repeater.Start()
 	return nil
 }
 
 // Disable disables the plugin.
 func (c *GotifyRepeaterPlugin) Disable() error {
 	c.StopRepeater()
+	c.repeater.Stop()
 	return nil
 }
 
