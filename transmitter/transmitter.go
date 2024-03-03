@@ -3,6 +3,7 @@ package transmitter
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
@@ -12,7 +13,7 @@ import (
 
 type DiscordTransmitter struct {
 	server   server.Server
-	Username string
+	username string
 	discord  string
 }
 
@@ -21,13 +22,47 @@ type DiscordWebhookPayload struct {
 	Username string `json:"username"`
 }
 
-func BuildDiscordTransmitter(server server.Server, discordHook string) DiscordTransmitter {
-	return DiscordTransmitter{server: server, discord: discordHook}
+type DiscordHookInfo struct {
+	Name string
+}
+
+func BuildDiscordTransmitter(server server.Server, discordHook string, name string) DiscordTransmitter {
+	var transmitter = DiscordTransmitter{server: server, discord: discordHook}
+
+	var hookInfo, err = transmitter.getHookInfo()
+	if err != nil {
+		transmitter.username = name
+	} else {
+		transmitter.username = hookInfo.Name
+	}
+
+	return transmitter
+}
+
+func (trans *DiscordTransmitter) getHookInfo() (DiscordHookInfo, error) {
+	var hookInfo = DiscordHookInfo{}
+	resp, err := http.Get(trans.discord)
+	if err != nil {
+		return hookInfo, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return hookInfo, err
+	}
+
+	err = json.Unmarshal(body, &hookInfo)
+	if err != nil {
+		return hookInfo, err
+	}
+	log.Println(hookInfo)
+	return hookInfo, nil
 }
 
 func (trans *DiscordTransmitter) BuildTransmitterFunction() func(msg relay.GotifyMessageStruct) {
 	return func(msg relay.GotifyMessageStruct) {
-		username := trans.Username
+		username := trans.username
 		application, err := trans.server.GetApplication(msg.Appid)
 		if err == nil {
 			username = application.Name

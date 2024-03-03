@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
 	"log"
 	"net/http"
@@ -16,8 +17,8 @@ var info = plugin.Info{
 	ModulePath:  "github.com/CEKlopfenstein/gotify-repeater",
 	Version:     "2024.1.x",
 	Author:      "CEKlopfenstein",
-	Description: "A simple Plugin that provides the ability to pass notifications recieved throught to discord. (Current Implementation. More planned.)",
-	Name:        "Gotify Repeater",
+	Description: "A simple plugin that acts as a relay to discord. (Current Implementation. More planned.)",
+	Name:        "Gotify Relay",
 }
 
 // GetGotifyPluginInfo returns gotify plugin info.
@@ -35,8 +36,7 @@ type GotifyRepeaterPlugin struct {
 // Enable enables the plugin.
 func (c *GotifyRepeaterPlugin) Enable() error {
 	var server = server.SetupServer(c.config.ServerURL, c.config.ClientToken)
-	var discord = transmitter.BuildDiscordTransmitter(server, c.config.DiscordWebHook)
-	discord.Username = info.Name
+	var discord = transmitter.BuildDiscordTransmitter(server, c.config.DiscordWebHook, info.Name)
 	c.relay.SetServer(server)
 	c.relay.ClearSenders()
 	c.relay.AddSender(func(msg relay.GotifyMessageStruct) {
@@ -53,12 +53,15 @@ func (c *GotifyRepeaterPlugin) Disable() error {
 	return nil
 }
 
+//go:embed SetupHints.md
+var setupHints string
+
 func (c *GotifyRepeaterPlugin) GetDisplay(location *url.URL) string {
 	var toReturn = ""
 
-	toReturn += "Version: " + info.Version + "\n\nDescription: " + info.Description + "\n\n"
+	toReturn += "## Version: " + info.Version + "\n\n## Description:\n" + info.Description + "\n\n"
 
-	toReturn += "In order to have this plugin function correctly 3 values are needed within. `discordwebhook`, `clienttoken`, and `serverurl`.\n\n`serverurl` can often be left as the default. Unless you enable HTTPS or wish to have the the plugin listen through some other URL. Note this can allow you to have the plugin listen to a different server entirely. This is not advised. As reconnection after a lost connection is not attempted at this time.\n\n`clienttoken` is the client the plugin will connect as. This can be any client you desire. It would be advisable to create it's own client in the Client Menu.\n\n`discordwebhool` is the webhook the plugin will use to send out messages. The Webhooks Username will be the name of the application that. If this fails for any reason it will be the Plugin Name seen in the Plugin Info."
+	toReturn += setupHints
 
 	return toReturn
 }
