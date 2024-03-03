@@ -1,15 +1,14 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
 
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
+	"github.com/CEKlopfenstein/gotify-repeater/server"
+	"github.com/CEKlopfenstein/gotify-repeater/transmitter"
 	"github.com/gotify/plugin-api"
 )
 
@@ -33,76 +32,17 @@ type GotifyRepeaterPlugin struct {
 	relay   relay.Relay
 }
 
-type DiscordWebhookPayload struct {
-	Content  string `json:"content"`
-	Username string `json:"username"`
-}
-
-type GotifyApplication struct {
-	DefaultPriority int
-	Description     string
-	Id              int
-	Image           string
-	Internal        bool
-	LastUsed        string
-	Name            string
-	Token           string
-}
-
-func (c *GotifyRepeaterPlugin) discordSend(message relay.GotifyMessageStruct) {
-	username := info.Name
-	applicationURL, err := url.Parse(c.config.ServerURL)
-	if err == nil {
-		applicationURL.Path = "/application"
-		query := applicationURL.Query()
-		query.Add("token", c.config.ClientToken)
-		applicationURL.RawQuery = query.Encode()
-		gotifyApplicationsResp, err := http.Get(applicationURL.String())
-		if err == nil {
-			gotifyApplicationsBytes, err := io.ReadAll(gotifyApplicationsResp.Body)
-			if err == nil {
-				arrayOfApps := []GotifyApplication{}
-				err = json.Unmarshal(gotifyApplicationsBytes, &arrayOfApps)
-				if err == nil {
-					for i := 0; i < len(arrayOfApps); i++ {
-						if arrayOfApps[i].Id == message.Appid {
-							username = arrayOfApps[i].Name
-							break
-						}
-					}
-				}
-			}
-			gotifyApplicationsResp.Body.Close()
-		}
-	}
-
-	var discordPayload = DiscordWebhookPayload{Username: username, Content: "# " + message.Title + "\n\n" + message.Message}
-
-	discordBytePayload, err := json.Marshal(&discordPayload)
-	if err != nil {
-		log.Println("Failed To Build Discord Webhook Payload:", err.Error())
-		return
-	}
-	resp, err := http.Post(c.config.DiscordWebHook, "application/json", bytes.NewReader(discordBytePayload))
-	if err != nil {
-		log.Println("Failed to Send Discord Webhook:", err.Error())
-		return
-	} else if resp.StatusCode != http.StatusNoContent {
-		log.Println("Discord Webhook returned response other than 204. Response:", resp.Status)
-	}
-}
-
 // Enable enables the plugin.
 func (c *GotifyRepeaterPlugin) Enable() error {
-
-	c.relay.SetUrlAndToken(c.config.ServerURL, c.config.ClientToken)
+	var server = server.SetupServer(c.config.ServerURL, c.config.ClientToken)
+	var discord = transmitter.BuildDiscordTransmitter(server, c.config.DiscordWebHook)
+	discord.Username = info.Name
+	c.relay.SetServer(server)
 	c.relay.ClearSenders()
 	c.relay.AddSender(func(msg relay.GotifyMessageStruct) {
 		log.Println(msg)
 	})
-	c.relay.AddSender(func(msg relay.GotifyMessageStruct) {
-		c.discordSend(msg)
-	})
+	c.relay.AddSender(discord.BuildTransmitterFunction())
 	go c.relay.Start()
 	return nil
 }

@@ -1,20 +1,16 @@
 package relay
 
 import (
-	"errors"
 	"log"
-	"net/http"
-	"net/url"
 	"time"
 
+	"github.com/CEKlopfenstein/gotify-repeater/server"
 	"github.com/gorilla/websocket"
 )
 
 type Relay struct {
 	listener      *websocket.Conn
-	host          string
-	streamUrl     string
-	token         string
+	server        server.Server
 	sendFunctions []func(GotifyMessageStruct)
 }
 
@@ -27,10 +23,8 @@ type GotifyMessageStruct struct {
 	Priority int
 }
 
-func (repeater *Relay) SetUrlAndToken(url string, token string) error {
-	repeater.host = url
-	repeater.token = token
-	return repeater.buildStreamUrl()
+func (repeater *Relay) SetServer(server server.Server) {
+	repeater.server = server
 }
 
 func (repeater *Relay) Start() {
@@ -43,7 +37,7 @@ func (repeater *Relay) Start() {
 		}
 		time.Sleep(100 * time.Millisecond)
 		attemptTick++
-		var check = repeater.checkForAcceptingConnections()
+		_, check := repeater.server.GetServerInfo()
 		if check == nil {
 			break
 		}
@@ -66,7 +60,7 @@ func (repeater *Relay) connectToStream() error {
 			return err
 		}
 	}
-	listener, _, err := websocket.DefaultDialer.Dial(repeater.streamUrl, nil)
+	listener, err := repeater.server.GetStream()
 	if err != nil {
 		return err
 	}
@@ -130,48 +124,4 @@ func (repeater *Relay) Stop() error {
 		log.Println("Error while Closing Connection:", err)
 	}
 	return err
-}
-
-func (repeater *Relay) checkForAcceptingConnections() error {
-	health, err := url.Parse(repeater.host)
-	if err != nil {
-		return err
-	}
-	health.Path = "/version"
-
-	resp, err := http.Get(health.String())
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return errors.New(resp.Status)
-	}
-
-	return nil
-}
-
-func (repeater *Relay) buildStreamUrl() error {
-	var streamUrl, err = url.Parse(repeater.host)
-	if err != nil {
-		return err
-	}
-
-	streamUrl.Path = "/stream"
-	var tokenQuery = streamUrl.Query()
-	tokenQuery.Add("token", repeater.token)
-	streamUrl.RawQuery = tokenQuery.Encode()
-
-	switch streamUrl.Scheme {
-	case "http":
-		streamUrl.Scheme = "ws"
-	case "https":
-		streamUrl.Scheme = "wss"
-	default:
-		return errors.New("invalid Schema in use in host URL")
-	}
-
-	repeater.streamUrl = streamUrl.String()
-
-	return nil
 }
