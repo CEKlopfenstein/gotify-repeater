@@ -1,4 +1,4 @@
-package main
+package relay
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Repeater struct {
+type Relay struct {
 	listener      *websocket.Conn
 	host          string
 	streamUrl     string
@@ -27,13 +27,13 @@ type GotifyMessageStruct struct {
 	Priority int
 }
 
-func (repeater *Repeater) SetUrlAndToken(url string, token string) error {
+func (repeater *Relay) SetUrlAndToken(url string, token string) error {
 	repeater.host = url
 	repeater.token = token
 	return repeater.buildStreamUrl()
 }
 
-func (repeater *Repeater) Start() {
+func (repeater *Relay) Start() {
 	var attemptTick = -1
 	var attemptLimit = 100
 	for {
@@ -58,7 +58,7 @@ func (repeater *Repeater) Start() {
 	repeater.startSender()
 }
 
-func (repeater *Repeater) connectToStream() error {
+func (repeater *Relay) connectToStream() error {
 	if repeater.listener != nil {
 		log.Println("Active Connection Found Closing")
 		var err = repeater.Stop()
@@ -74,7 +74,7 @@ func (repeater *Repeater) connectToStream() error {
 	return nil
 }
 
-func (repeater *Repeater) startSender() {
+func (repeater *Relay) startSender() {
 	go func() {
 		var con = repeater.listener
 		defer con.Close()
@@ -95,12 +95,12 @@ func (repeater *Repeater) startSender() {
 	}()
 }
 
-func (repeater *Repeater) AddSender(sender func(GotifyMessageStruct)) int {
+func (repeater *Relay) AddSender(sender func(GotifyMessageStruct)) int {
 	repeater.sendFunctions = append(repeater.sendFunctions, sender)
 	return len(repeater.sendFunctions) - 1
 }
 
-func (repeater *Repeater) ClearSenders() int {
+func (repeater *Relay) ClearSenders() int {
 	var count = len(repeater.sendFunctions)
 
 	repeater.sendFunctions = []func(GotifyMessageStruct){}
@@ -108,7 +108,7 @@ func (repeater *Repeater) ClearSenders() int {
 	return count
 }
 
-func (repeater *Repeater) RemoveSender(index int) {
+func (repeater *Relay) RemoveSender(index int) {
 	var newSendersArray = []func(GotifyMessageStruct){}
 	for senderIndex := 0; senderIndex < len(repeater.sendFunctions); senderIndex++ {
 		if senderIndex != index {
@@ -122,7 +122,7 @@ func (repeater *Repeater) RemoveSender(index int) {
 	repeater.sendFunctions = newSendersArray
 }
 
-func (repeater *Repeater) Stop() error {
+func (repeater *Relay) Stop() error {
 	var con = repeater.listener
 	repeater.listener = nil
 	var err = con.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
@@ -132,7 +132,7 @@ func (repeater *Repeater) Stop() error {
 	return err
 }
 
-func (repeater *Repeater) checkForAcceptingConnections() error {
+func (repeater *Relay) checkForAcceptingConnections() error {
 	health, err := url.Parse(repeater.host)
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func (repeater *Repeater) checkForAcceptingConnections() error {
 	return nil
 }
 
-func (repeater *Repeater) buildStreamUrl() error {
+func (repeater *Relay) buildStreamUrl() error {
 	var streamUrl, err = url.Parse(repeater.host)
 	if err != nil {
 		return err

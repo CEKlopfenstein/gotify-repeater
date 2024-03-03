@@ -1,4 +1,4 @@
-module github.com/gotify/plugin-template
+module github.com/CEKlopfenstein/gotify-repeater
 
 go 1.18
 

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/CEKlopfenstein/gotify-repeater/relay"
 	"github.com/gotify/plugin-api"
 )
 
@@ -27,9 +28,9 @@ func GetGotifyPluginInfo() plugin.Info {
 
 // GotifyRepeaterPlugin is the gotify plugin instance.
 type GotifyRepeaterPlugin struct {
-	userCtx  plugin.UserContext
-	config   *Config
-	repeater Repeater
+	userCtx plugin.UserContext
+	config  *Config
+	relay   relay.Relay
 }
 
 type DiscordWebhookPayload struct {
@@ -48,7 +49,7 @@ type GotifyApplication struct {
 	Token           string
 }
 
-func (c *GotifyRepeaterPlugin) discordSend(message GotifyMessageStruct) {
+func (c *GotifyRepeaterPlugin) discordSend(message relay.GotifyMessageStruct) {
 	username := info.Name
 	applicationURL, err := url.Parse(c.config.ServerURL)
 	if err == nil {
@@ -93,21 +94,22 @@ func (c *GotifyRepeaterPlugin) discordSend(message GotifyMessageStruct) {
 
 // Enable enables the plugin.
 func (c *GotifyRepeaterPlugin) Enable() error {
-	c.repeater.SetUrlAndToken(c.config.ServerURL, c.config.ClientToken)
-	c.repeater.ClearSenders()
-	c.repeater.AddSender(func(msg GotifyMessageStruct) {
+
+	c.relay.SetUrlAndToken(c.config.ServerURL, c.config.ClientToken)
+	c.relay.ClearSenders()
+	c.relay.AddSender(func(msg relay.GotifyMessageStruct) {
 		log.Println(msg)
 	})
-	c.repeater.AddSender(func(msg GotifyMessageStruct) {
+	c.relay.AddSender(func(msg relay.GotifyMessageStruct) {
 		c.discordSend(msg)
 	})
-	go c.repeater.Start()
+	go c.relay.Start()
 	return nil
 }
 
 // Disable disables the plugin.
 func (c *GotifyRepeaterPlugin) Disable() error {
-	c.repeater.Stop()
+	c.relay.Stop()
 	return nil
 }
 
