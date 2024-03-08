@@ -9,9 +9,10 @@ import (
 )
 
 type Relay struct {
-	listener      *websocket.Conn
-	server        server.Server
-	sendFunctions []func(GotifyMessageStruct)
+	listener        *websocket.Conn
+	server          server.Server
+	senderFunctions map[int]func(GotifyMessageStruct)
+	nextID          int
 }
 
 type GotifyMessageStruct struct {
@@ -81,39 +82,45 @@ func (relay *Relay) startSender() {
 			}
 			if err != nil {
 				log.Println("Failed to Read in Gotify Message from Stream:", err)
+				relay.Stop()
+				relay.Start()
 			}
-			for sender := 0; sender < len(relay.sendFunctions); sender++ {
-				relay.sendFunctions[sender](gotifyMessage)
+
+			for key := range relay.senderFunctions {
+				relay.senderFunctions[key](gotifyMessage)
 			}
 		}
 	}()
 }
 
 func (relay *Relay) AddSender(sender func(GotifyMessageStruct)) int {
-	relay.sendFunctions = append(relay.sendFunctions, sender)
-	return len(relay.sendFunctions) - 1
+	if relay.senderFunctions == nil {
+		relay.senderFunctions = make(map[int]func(GotifyMessageStruct))
+	}
+	id := relay.nextID
+	relay.nextID++
+	relay.senderFunctions[id] = sender
+	return id
 }
 
 func (relay *Relay) ClearSenders() int {
-	var count = len(relay.sendFunctions)
+	if relay.senderFunctions == nil {
+		relay.senderFunctions = make(map[int]func(GotifyMessageStruct))
+	}
+	count := len(relay.senderFunctions)
 
-	relay.sendFunctions = []func(GotifyMessageStruct){}
+	for key := range relay.senderFunctions {
+		delete(relay.senderFunctions, key)
+	}
 
 	return count
 }
 
 func (relay *Relay) RemoveSender(index int) {
-	var newSendersArray = []func(GotifyMessageStruct){}
-	for senderIndex := 0; senderIndex < len(relay.sendFunctions); senderIndex++ {
-		if senderIndex != index {
-			newSendersArray = append(newSendersArray, relay.sendFunctions[senderIndex])
-		} else {
-			newSendersArray = append(newSendersArray, func(msg GotifyMessageStruct) {
-				// Blank to preserve indexes already returned.
-			})
-		}
+	if relay.senderFunctions == nil {
+		relay.senderFunctions = make(map[int]func(GotifyMessageStruct))
 	}
-	relay.sendFunctions = newSendersArray
+	delete(relay.senderFunctions, index)
 }
 
 func (relay *Relay) Stop() error {
