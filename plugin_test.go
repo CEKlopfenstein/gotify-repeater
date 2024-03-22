@@ -8,6 +8,6 @@ import (
 )
 
 func TestAPICompatibility(t *testing.T) {
-	assert.Implements(t, (*plugin.Plugin)(nil), new(GotifyRepeaterPlugin))
+	assert.Implements(t, (*plugin.Plugin)(nil), new(GotifyRelayPlugin))
 	// Add other interfaces you intend to implement here
 }

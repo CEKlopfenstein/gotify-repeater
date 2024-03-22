@@ -10,6 +10,8 @@ import (
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
 	"github.com/CEKlopfenstein/gotify-repeater/server"
 	"github.com/CEKlopfenstein/gotify-repeater/transmitter"
+	"github.com/CEKlopfenstein/gotify-repeater/user"
+	"github.com/gin-gonic/gin"
 	"github.com/gotify/plugin-api"
 )
 
@@ -26,15 +28,16 @@ func GetGotifyPluginInfo() plugin.Info {
 	return info
 }
 
-// GotifyRepeaterPlugin is the gotify plugin instance.
-type GotifyRepeaterPlugin struct {
-	userCtx plugin.UserContext
-	config  *Config
-	relay   relay.Relay
+// GotifyRelayPlugin is the gotify plugin instance.
+type GotifyRelayPlugin struct {
+	userCtx  plugin.UserContext
+	config   *Config
+	relay    relay.Relay
+	basePath string
 }
 
 // Enable enables the plugin.
-func (c *GotifyRepeaterPlugin) Enable() error {
+func (c *GotifyRelayPlugin) Enable() error {
 	var server = server.SetupServer(c.config.ServerURL, c.config.ClientToken)
 	var discord = transmitter.BuildDiscordTransmitter(server, c.config.DiscordWebHook, info.Name)
 	c.relay.SetServer(server)
@@ -48,7 +51,7 @@ func (c *GotifyRepeaterPlugin) Enable() error {
 }
 
 // Disable disables the plugin.
-func (c *GotifyRepeaterPlugin) Disable() error {
+func (c *GotifyRelayPlugin) Disable() error {
 	c.relay.Stop()
 	return nil
 }
@@ -56,12 +59,14 @@ func (c *GotifyRepeaterPlugin) Disable() error {
 //go:embed SetupHints.md
 var setupHints string
 
-func (c *GotifyRepeaterPlugin) GetDisplay(location *url.URL) string {
+func (c *GotifyRelayPlugin) GetDisplay(location *url.URL) string {
 	var toReturn = ""
 
 	toReturn += "## Version: " + info.Version + "\n\n## Description:\n" + info.Description + "\n\n"
 
 	toReturn += setupHints
+
+	toReturn += "\n\n## [Config Page](" + c.basePath + ")"
 
 	return toReturn
 }
@@ -73,7 +78,7 @@ type Config struct {
 }
 
 // Set Default Values of Config
-func (c *GotifyRepeaterPlugin) DefaultConfig() interface{} {
+func (c *GotifyRelayPlugin) DefaultConfig() interface{} {
 	return &Config{
 		DiscordWebHook: "",
 		ClientToken:    "",
@@ -81,7 +86,7 @@ func (c *GotifyRepeaterPlugin) DefaultConfig() interface{} {
 	}
 }
 
-func (c *GotifyRepeaterPlugin) ValidateAndSetConfig(cd interface{}) error {
+func (c *GotifyRelayPlugin) ValidateAndSetConfig(cd interface{}) error {
 	config := cd.(*Config)
 	// Validation of Discord Webhook
 	if len(config.DiscordWebHook) == 0 {
@@ -121,9 +126,14 @@ func (c *GotifyRepeaterPlugin) ValidateAndSetConfig(cd interface{}) error {
 	return nil
 }
 
+func (c *GotifyRelayPlugin) RegisterWebhook(basePath string, mux *gin.RouterGroup) {
+	c.basePath = basePath
+	user.BuildInterface(basePath, mux, &c.relay)
+}
+
 // NewGotifyPluginInstance creates a plugin instance for a user context.
 func NewGotifyPluginInstance(ctx plugin.UserContext) plugin.Plugin {
-	return &GotifyRepeaterPlugin{userCtx: ctx}
+	return &GotifyRelayPlugin{userCtx: ctx}
 }
 
 func main() {
