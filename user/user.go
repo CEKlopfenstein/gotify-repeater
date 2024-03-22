@@ -1,12 +1,14 @@
 package user
 
 import (
+	"bytes"
 	_ "embed"
 	"html/template"
 	"log"
 	"net/http"
 
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
+	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,9 +28,22 @@ type card struct {
 	Body  template.HTML
 }
 
-func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay) {
+func buildConfigCard(config *structs.Config) template.HTML {
+	tmpl, err := template.New("").Parse("<div><div>{{.ServerURL}}</div><div>{{.ClientToken}}</div><div>{{.DiscordWebHook}}</div></div>")
+	if err != nil {
+		return template.HTML("Error: " + err.Error())
+	}
+	var doc bytes.Buffer
+	err = tmpl.Execute(&doc, config)
+	if err != nil {
+		return template.HTML("Error: " + err.Error())
+	}
+	return template.HTML(doc.String())
+}
+
+func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, hookConfig *structs.Config) {
 	var cards = []card{}
-	cards = append(cards, card{Title: "Discord Hook", Body: template.HTML("Hello")})
+	cards = append(cards, card{Title: "Discord Hook", Body: buildConfigCard(hookConfig)})
 	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards}
 
 	log.Println(basePath)

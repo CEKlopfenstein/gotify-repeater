@@ -9,6 +9,7 @@ import (
 
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
 	"github.com/CEKlopfenstein/gotify-repeater/server"
+	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	"github.com/CEKlopfenstein/gotify-repeater/transmitter"
 	"github.com/CEKlopfenstein/gotify-repeater/user"
 	"github.com/gin-gonic/gin"
@@ -31,7 +32,7 @@ func GetGotifyPluginInfo() plugin.Info {
 // GotifyRelayPlugin is the gotify plugin instance.
 type GotifyRelayPlugin struct {
 	userCtx  plugin.UserContext
-	config   *Config
+	config   *structs.Config
 	relay    relay.Relay
 	basePath string
 }
@@ -71,15 +72,9 @@ func (c *GotifyRelayPlugin) GetDisplay(location *url.URL) string {
 	return toReturn
 }
 
-type Config struct {
-	DiscordWebHook string
-	ClientToken    string
-	ServerURL      string
-}
-
 // Set Default Values of Config
 func (c *GotifyRelayPlugin) DefaultConfig() interface{} {
-	return &Config{
+	return &structs.Config{
 		DiscordWebHook: "",
 		ClientToken:    "",
 		ServerURL:      "http://localhost",
@@ -87,7 +82,7 @@ func (c *GotifyRelayPlugin) DefaultConfig() interface{} {
 }
 
 func (c *GotifyRelayPlugin) ValidateAndSetConfig(cd interface{}) error {
-	config := cd.(*Config)
+	config := cd.(*structs.Config)
 	// Validation of Discord Webhook
 	if len(config.DiscordWebHook) == 0 {
 		return errors.New("discord Webhook required")
@@ -128,7 +123,7 @@ func (c *GotifyRelayPlugin) ValidateAndSetConfig(cd interface{}) error {
 
 func (c *GotifyRelayPlugin) RegisterWebhook(basePath string, mux *gin.RouterGroup) {
 	c.basePath = basePath
-	user.BuildInterface(basePath, mux, &c.relay)
+	user.BuildInterface(basePath, mux, &c.relay, c.config)
 }
 
 // NewGotifyPluginInstance creates a plugin instance for a user context.
