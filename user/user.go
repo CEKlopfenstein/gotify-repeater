@@ -16,11 +16,16 @@ import (
 var main string
 
 //go:embed htmx.min.js
-var htmxMin string
+var htmxMinJS string
+
+//go:embed main.js
+var mainJS string
 
 type userPage struct {
 	HtmxBasePath string
 	Cards        []card
+	MainJSPath   string
+	pluginToken  string
 }
 
 type card struct {
@@ -29,7 +34,7 @@ type card struct {
 }
 
 func buildConfigCard(config *structs.Config) template.HTML {
-	tmpl, err := template.New("").Parse("<div><div>{{.ServerURL}}</div><div>{{.ClientToken}}</div><div>{{.DiscordWebHook}}</div></div>")
+	tmpl, err := template.New("").Parse("<div><div>Server URL: {{.ServerURL}}</div><div>Client Token: {{.ClientToken}}</div><div>Discord Webhook: {{.DiscordWebHook}}</div></div>")
 	if err != nil {
 		return template.HTML("Error: " + err.Error())
 	}
@@ -44,7 +49,7 @@ func buildConfigCard(config *structs.Config) template.HTML {
 func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, hookConfig *structs.Config) {
 	var cards = []card{}
 	cards = append(cards, card{Title: "Discord Hook", Body: buildConfigCard(hookConfig)})
-	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards}
+	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards, MainJSPath: "main.js"}
 
 	log.Println(basePath)
 
@@ -62,7 +67,15 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		}
 		ctx.Done()
 	})
+
 	mux.GET("/"+pageData.HtmxBasePath, func(ctx *gin.Context) {
-		ctx.Data(http.StatusOK, "text/javascript", []byte(htmxMin))
+		ctx.Data(http.StatusOK, "text/javascript", []byte(htmxMinJS))
+	})
+	mux.GET("/"+pageData.MainJSPath, func(ctx *gin.Context) {
+		ctx.Data(http.StatusOK, "text/javascript", []byte(mainJS))
+	})
+
+	mux.GET("/test", func(ctx *gin.Context) {
+		ctx.Data(http.StatusOK, "text/html", []byte(pageData.pluginToken))
 	})
 }
