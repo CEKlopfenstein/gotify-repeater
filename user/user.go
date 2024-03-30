@@ -15,6 +15,9 @@ import (
 //go:embed main.html
 var main string
 
+//go:embed wrapper.html
+var wrapper string
+
 //go:embed htmx.min.js
 var htmxMinJS string
 
@@ -52,20 +55,37 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards, MainJSPath: "main.js"}
 
 	log.Println(basePath)
+	log.Println(mux.BasePath())
 
 	mux.GET("/", func(ctx *gin.Context) {
-		tmpl, err := template.New("").Parse(main)
-		if err != nil {
-			log.Println(err)
+		log.Println(ctx.Request.Host)
+		var clientKey = ctx.Request.Header.Get("X-Gotify-Key")
+		if len(clientKey) == 0 {
+			tmpl, err := template.New("").Parse(wrapper)
+			if err != nil {
+				log.Println(err)
+				ctx.Done()
+				return
+			}
+			err = tmpl.Execute(ctx.Writer, pageData)
+			if err != nil {
+				log.Println(err)
+			}
 			ctx.Done()
-			return
+		} else {
+			tmpl, err := template.New("").Parse(main)
+			if err != nil {
+				log.Println(err)
+				ctx.Done()
+				return
+			}
+			err = tmpl.Execute(ctx.Writer, pageData)
+			if err != nil {
+				log.Println(err)
+			}
+			ctx.Done()
 		}
-		log.Println("Test")
-		err = tmpl.Execute(ctx.Writer, pageData)
-		if err != nil {
-			log.Println(err)
-		}
-		ctx.Done()
+
 	})
 
 	mux.GET("/"+pageData.HtmxBasePath, func(ctx *gin.Context) {

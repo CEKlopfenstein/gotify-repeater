@@ -1,69 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <script src="{{.HtmxBasePath}}"></script>
-    <style>
-        .header{
-            color: #fff;
-            background-color: #3f51b5;
-            padding: 0.1rem;
-        }
-        .header > a {
-            color: #fff;
-        }
-        body{
-            color: #fff;
-            background-color: #303030;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .main{
-            max-width: calc(800px - (30px*2));
-            margin-left: auto;
-            margin-right: auto;
-            padding-left: 30px;
-            padding-right: 30px;
-        }
-        .main > div{
-            border-radius: 0.5rem;
-            background-color: #424242;
-            padding: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        .main > div > h2:first-child {
-            border-bottom: #fff solid 0.1rem;
-        }
-    </style>
-    <script src="{{.MainJSPath}}"></script>
-</head>
-
-<body onload="console.log('test')">
-    <div class="header">
-        <a href="/">
-            <h2>Gotify</h2>
-        </a>
-    </div>
-    <div class="main">
+<div class="main">
+    <div>
+        <h2>General Settings</h2>
         <div>
-            <h2>General Settings</h2>
-            <div>
-                <div>Current Client Token: <span id="client-token-display"></span></div>
-                <div>Saved Client Token: <span hx-get="test" hx-trigger="load"></span></div>
-                <div hx-get="/current/user" hx-headers='js:{"X-Gotify-Key":localStorage.getItem("gotify-login-key")}' hx-trigger="load"></div>
-            </div>
+            <div>Current Client Token: <span id="client-token-display"></span></div>
+            <div>Saved Client Token: <span hx-get="test" hx-trigger="load"></span></div>
+            <div hx-get="/current/user" hx-headers='js:{"X-Gotify-Key":localStorage.getItem("gotify-login-key")}' hx-trigger="load"></div>
         </div>
-        {{range .Cards}}
-        <div>
-            <h2>{{.Title}}</h2>
-            {{.Body}}
-        </div>
-        {{end}}
     </div>
-</body>
-
-</html>
+    {{range .Cards}}
+    <div>
+        <h2>{{.Title}}</h2>
+        {{.Body}}
+    </div>
+    {{end}}
+</div>
