@@ -33,11 +33,12 @@ func GetGotifyPluginInfo() plugin.Info {
 
 // GotifyRelayPlugin is the gotify plugin instance.
 type GotifyRelayPlugin struct {
-	userCtx  plugin.UserContext
-	config   *structs.Config
-	relay    relay.Relay
-	basePath string
-	hostName string
+	userCtx        plugin.UserContext
+	config         *structs.Config
+	relay          relay.Relay
+	basePath       string
+	hostName       string
+	storageHandler plugin.StorageHandler
 }
 
 // Enable enables the plugin.
@@ -126,7 +127,11 @@ func (c *GotifyRelayPlugin) ValidateAndSetConfig(cd interface{}) error {
 
 func (c *GotifyRelayPlugin) RegisterWebhook(basePath string, mux *gin.RouterGroup) {
 	c.basePath = basePath
-	user.BuildInterface(basePath, mux, &c.relay, c.config)
+	user.BuildInterface(basePath, mux, &c.relay, c.config, c.storageHandler)
+}
+
+func (c *GotifyRelayPlugin) SetStorageHandler(h plugin.StorageHandler) {
+	c.storageHandler = h
 }
 
 // NewGotifyPluginInstance creates a plugin instance for a user context.

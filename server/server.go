@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -162,8 +161,6 @@ func (server *Server) CheckToken(token string) error {
 	if resp.StatusCode != http.StatusOK {
 		return errors.New(string(body))
 	}
-
-	log.Println("Tick", string(body))
 
 	return nil
 }

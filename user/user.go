@@ -3,6 +3,7 @@ package user
 import (
 	"bytes"
 	_ "embed"
+	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	"github.com/gin-gonic/gin"
+	"github.com/gotify/plugin-api"
 )
 
 //go:embed main.html
@@ -42,6 +44,7 @@ func buildConfigCard(config *structs.Config) template.HTML {
 		return template.HTML("Error: " + err.Error())
 	}
 	var doc bytes.Buffer
+	log.Println(config)
 	err = tmpl.Execute(&doc, config)
 	if err != nil {
 		return template.HTML("Error: " + err.Error())
@@ -49,7 +52,7 @@ func buildConfigCard(config *structs.Config) template.HTML {
 	return template.HTML(doc.String())
 }
 
-func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, hookConfig *structs.Config) {
+func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, hookConfig *structs.Config, c plugin.StorageHandler) {
 	var cards = []card{}
 	cards = append(cards, card{Title: "Discord Hook", Body: buildConfigCard(hookConfig)})
 	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards, MainJSPath: "main.js"}
@@ -120,8 +123,80 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		ctx.Next()
 	})
 
+	mux.GET("/getLoginToken", func(ctx *gin.Context) {
+		ctx.Data(http.StatusOK, "text/html", []byte(ctx.Request.Header.Get("X-Gotify-Key")))
+	})
+
 	mux.GET("/test", func(ctx *gin.Context) {
 		log.Println(ctx.Request.Header.Get("X-Gotify-Key"))
 		ctx.Data(http.StatusOK, "text/html", []byte(pageData.pluginToken))
+	})
+
+	type contact struct {
+		FirstName string
+		LastName  string
+		Email     string
+	}
+
+	mux.GET("/contact", func(ctx *gin.Context) {
+		storageBytes, _ := c.Load()
+		var contactInfo = contact{}
+		if len(storageBytes) == 0 {
+			contactInfo.FirstName = ""
+			contactInfo.LastName = ""
+			contactInfo.Email = ""
+			storageBytes, _ = json.Marshal(contactInfo)
+			c.Save(storageBytes)
+		} else {
+			json.Unmarshal(storageBytes, &contactInfo)
+		}
+		ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
+        <div><label>First Name</label>: `+contactInfo.FirstName+`</div>
+        <div><label>Last Name</label>: `+contactInfo.LastName+`</div>
+        <div><label>Email</label>: `+contactInfo.Email+`</div>
+        <button hx-get="edit" class="btn btn-primary">
+        Click To Edit
+        </button>
+    </div>`))
+	})
+
+	mux.GET("/edit", func(ctx *gin.Context) {
+		storageBytes, _ := c.Load()
+		var contactInfo = contact{}
+		if len(storageBytes) == 0 {
+			contactInfo.FirstName = ""
+			contactInfo.LastName = ""
+			contactInfo.Email = ""
+			storageBytes, _ = json.Marshal(contactInfo)
+			c.Save(storageBytes)
+		} else {
+			json.Unmarshal(storageBytes, &contactInfo)
+		}
+		ctx.Data(http.StatusOK, "text/html", []byte(`<form hx-put="contact" hx-target="this" hx-swap="outerHTML">
+		<div>
+		  <label>First Name</label>
+		  <input type="text" name="firstName" value="`+contactInfo.FirstName+`">
+		</div>
+		<div class="form-group">
+		  <label>Last Name</label>
+		  <input type="text" name="lastName" value="`+contactInfo.LastName+`">
+		</div>
+		<div class="form-group">
+		  <label>Email Address</label>
+		  <input type="email" name="email" value="`+contactInfo.Email+`">
+		</div>
+		<button class="btn">Submit</button>
+		<button class="btn" hx-get="contact">Cancel</button>
+	  </form>`))
+	})
+
+	mux.PUT("/contact", func(ctx *gin.Context) {
+		var contactInfo = contact{}
+		contactInfo.FirstName = ctx.PostForm("firstName")
+		contactInfo.LastName = ctx.PostForm("lastName")
+		contactInfo.Email = ctx.PostForm("email")
+		storageBytes, _ := json.Marshal(contactInfo)
+		c.Save(storageBytes)
+		ctx.Redirect(303, "contact")
 	})
 }

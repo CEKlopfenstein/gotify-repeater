@@ -1,10 +1,8 @@
 <div class="main">
     <div>
-        <h2>General Settings</h2>
+        <h2>General Info</h2>
         <div>
-            <div>Current Client Token: <span id="client-token-display"></span></div>
-            <div>Saved Client Token: <span hx-get="test" hx-trigger="load"></span></div>
-            <div hx-get="/current/user" hx-trigger="load"></div>
+            <div>Logged In Token: <span hx-get="getLoginToken" hx-trigger="load"></span></div>
         </div>
     </div>
     {{range .Cards}}
@@ -13,4 +11,10 @@
         {{.Body}}
     </div>
     {{end}}
+    <div>
+        <h2>Test Config</h2>
+        <div hx-target="this" hx-swap="outerHTML">
+            <div hx-get="contact" hx-trigger="load"></div>
+        </div>
+    </div>
 </div>
