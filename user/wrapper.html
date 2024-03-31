@@ -42,7 +42,7 @@
     <script src="{{.MainJSPath}}"></script>
 </head>
 
-<body hx-get="" hx-headers='js:{"X-Gotify-Key":localStorage.getItem("gotify-login-key")}' hx-trigger="load" hx-swap="afterend" hx-target=".header">
+<body hx-get="" hx-headers='js:{"X-Gotify-Key":localStorage.getItem("gotify-login-key")}' hx-trigger="load" hx-swap="afterend" hx-target=".header" hx-disinherit="*" hx-inherit="hx-headers">
     <div class="header">
         <a href="/">
             <h2>Gotify</h2>

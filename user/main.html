@@ -4,7 +4,7 @@
         <div>
             <div>Current Client Token: <span id="client-token-display"></span></div>
             <div>Saved Client Token: <span hx-get="test" hx-trigger="load"></span></div>
-            <div hx-get="/current/user" hx-headers='js:{"X-Gotify-Key":localStorage.getItem("gotify-login-key")}' hx-trigger="load"></div>
+            <div hx-get="/current/user" hx-trigger="load"></div>
         </div>
     </div>
     {{range .Cards}}

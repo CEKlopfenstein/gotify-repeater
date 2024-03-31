@@ -57,6 +57,13 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 	log.Println(basePath)
 	log.Println(mux.BasePath())
 
+	mux.GET("/"+pageData.HtmxBasePath, func(ctx *gin.Context) {
+		ctx.Data(http.StatusOK, "text/javascript", []byte(htmxMinJS))
+	})
+	mux.GET("/"+pageData.MainJSPath, func(ctx *gin.Context) {
+		ctx.Data(http.StatusOK, "text/javascript", []byte(mainJS))
+	})
+
 	mux.GET("/", func(ctx *gin.Context) {
 		log.Println(ctx.Request.Host)
 		var clientKey = ctx.Request.Header.Get("X-Gotify-Key")
@@ -95,14 +102,26 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 	})
 
-	mux.GET("/"+pageData.HtmxBasePath, func(ctx *gin.Context) {
-		ctx.Data(http.StatusOK, "text/javascript", []byte(htmxMinJS))
-	})
-	mux.GET("/"+pageData.MainJSPath, func(ctx *gin.Context) {
-		ctx.Data(http.StatusOK, "text/javascript", []byte(mainJS))
+	mux.Use(func(ctx *gin.Context) {
+		var clientKey = ctx.Request.Header.Get("X-Gotify-Key")
+		if len(clientKey) == 0 {
+			ctx.Data(http.StatusUnauthorized, "text/html", []byte("X-Gotify-Key Missing"))
+			ctx.Done()
+			return
+		}
+		var server = relay.GetServer()
+		var failed = server.CheckToken(clientKey)
+		if failed != nil {
+			ctx.Data(http.StatusUnauthorized, "application/json", []byte(failed.Error()))
+			ctx.Done()
+			return
+		}
+
+		ctx.Next()
 	})
 
 	mux.GET("/test", func(ctx *gin.Context) {
+		log.Println(ctx.Request.Header.Get("X-Gotify-Key"))
 		ctx.Data(http.StatusOK, "text/html", []byte(pageData.pluginToken))
 	})
 }
