@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 
+	"github.com/CEKlopfenstein/gotify-repeater/config"
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
 	"github.com/CEKlopfenstein/gotify-repeater/server"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
@@ -35,11 +37,12 @@ type GotifyRelayPlugin struct {
 	config   *structs.Config
 	relay    relay.Relay
 	basePath string
+	hostName string
 }
 
 // Enable enables the plugin.
 func (c *GotifyRelayPlugin) Enable() error {
-	var server = server.SetupServer(c.config.ServerURL, c.config.ClientToken)
+	var server = server.SetupServer(c.hostName, c.config.ClientToken)
 	var discord = transmitter.BuildDiscordTransmitter(server, c.config.DiscordWebHook, info.Name)
 	c.relay.SetServer(server)
 	c.relay.ClearSenders()
@@ -128,7 +131,28 @@ func (c *GotifyRelayPlugin) RegisterWebhook(basePath string, mux *gin.RouterGrou
 
 // NewGotifyPluginInstance creates a plugin instance for a user context.
 func NewGotifyPluginInstance(ctx plugin.UserContext) plugin.Plugin {
-	return &GotifyRelayPlugin{userCtx: ctx}
+	conf := config.Get()
+
+	var host string
+	if *conf.Server.SSL.Enabled {
+		host = "https://"
+	} else {
+		host = "http://"
+	}
+	if *conf.Server.SSL.Enabled && len(conf.Server.SSL.ListenAddr) == 0 {
+		host += "127.0.0.1"
+	} else if !*conf.Server.SSL.Enabled && len(conf.Server.ListenAddr) == 0 {
+		host += "127.0.0.1"
+	} else {
+		host += conf.Server.ListenAddr
+	}
+	if *conf.Server.SSL.Enabled && conf.Server.SSL.Port != 443 {
+		host += ":" + strconv.Itoa(conf.Server.SSL.Port)
+	} else if conf.Server.Port != 80 {
+		host += ":" + strconv.Itoa(conf.Server.Port)
+	}
+
+	return &GotifyRelayPlugin{userCtx: ctx, hostName: host}
 }
 
 func main() {

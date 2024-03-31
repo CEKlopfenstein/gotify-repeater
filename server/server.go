@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -137,4 +138,32 @@ func (server *Server) GetApplication(appId int) (Application, error) {
 	}
 
 	return application, fmt.Errorf("application with id of %d not found", appId)
+}
+
+func (server *Server) CheckToken(token string) error {
+	currentUserURL, err := url.Parse(server.serverUrl)
+	if err != nil {
+		return err
+	}
+	currentUserURL.Path = "/current/user"
+	query := currentUserURL.Query()
+	query.Add("token", token)
+	currentUserURL.RawQuery = query.Encode()
+	resp, err := http.Get(currentUserURL.String())
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(string(body))
+	}
+
+	log.Println("Tick", string(body))
+
+	return nil
 }

@@ -73,6 +73,14 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 			}
 			ctx.Done()
 		} else {
+			var server = relay.GetServer()
+			var failed = server.CheckToken(clientKey)
+			if failed != nil {
+				log.Println(failed)
+				ctx.Data(http.StatusOK, "text/html", []byte("<h2>Unauthorized token. Redirecting to main page.</h2><script>window.location = '/';</script>"))
+				ctx.Done()
+				return
+			}
 			tmpl, err := template.New("").Parse(main)
 			if err != nil {
 				log.Println(err)
@@ -83,7 +91,6 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 			if err != nil {
 				log.Println(err)
 			}
-			ctx.Done()
 		}
 
 	})

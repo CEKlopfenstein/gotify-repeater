@@ -28,6 +28,10 @@ func (relay *Relay) SetServer(server server.Server) {
 	relay.server = server
 }
 
+func (relay *Relay) GetServer() server.Server {
+	return relay.server
+}
+
 func (relay *Relay) Start() {
 	var attemptTick = -1
 	var attemptLimit = 100
