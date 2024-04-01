@@ -5,23 +5,17 @@ import (
 	"time"
 
 	"github.com/CEKlopfenstein/gotify-repeater/server"
+	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	"github.com/gorilla/websocket"
 )
 
 type Relay struct {
-	listener        *websocket.Conn
-	server          server.Server
-	senderFunctions map[int]func(GotifyMessageStruct)
-	nextID          int
-}
-
-type GotifyMessageStruct struct {
-	Appid    int
-	Date     string
-	Id       int
-	Message  string
-	Title    string
-	Priority int
+	listener          *websocket.Conn
+	server            server.Server
+	senderFunctions   map[int]func(structs.GotifyMessageStruct)
+	nextFunctionID    int
+	transmitters      map[int]structs.Transmitter
+	nextTransmitterID int
 }
 
 func (relay *Relay) SetServer(server server.Server) {
@@ -78,7 +72,7 @@ func (relay *Relay) startSender() {
 		var con = relay.listener
 		defer con.Close()
 		for {
-			var gotifyMessage = GotifyMessageStruct{}
+			var gotifyMessage = structs.GotifyMessageStruct{}
 			var err = con.ReadJSON(&gotifyMessage)
 			if relay.listener == nil {
 				log.Println("Connection Closed")
@@ -93,23 +87,49 @@ func (relay *Relay) startSender() {
 			for key := range relay.senderFunctions {
 				relay.senderFunctions[key](gotifyMessage)
 			}
+			for key := range relay.transmitters {
+				relay.transmitters[key].BuildTransmitterFunction()(gotifyMessage, relay.server)
+			}
 		}
 	}()
 }
 
-func (relay *Relay) AddSender(sender func(GotifyMessageStruct)) int {
+func (relay *Relay) AddTransmitFunction(sender func(structs.GotifyMessageStruct)) int {
 	if relay.senderFunctions == nil {
-		relay.senderFunctions = make(map[int]func(GotifyMessageStruct))
+		relay.senderFunctions = make(map[int]func(structs.GotifyMessageStruct))
 	}
-	id := relay.nextID
-	relay.nextID++
+	id := relay.nextFunctionID
+	relay.nextFunctionID++
 	relay.senderFunctions[id] = sender
 	return id
 }
 
-func (relay *Relay) ClearSenders() int {
+func (relay *Relay) AddTransmitter(sender structs.Transmitter) int {
+	if relay.transmitters == nil {
+		relay.transmitters = make(map[int]structs.Transmitter)
+	}
+	id := relay.nextTransmitterID
+	relay.nextTransmitterID++
+	relay.transmitters[id] = sender
+	return id
+}
+
+func (relay *Relay) ClearTransmitters() int {
+	if relay.transmitters == nil {
+		relay.transmitters = make(map[int]structs.Transmitter)
+	}
+	count := len(relay.transmitters)
+
+	for key := range relay.transmitters {
+		delete(relay.transmitters, key)
+	}
+
+	return count
+}
+
+func (relay *Relay) ClearTransmitFunctions() int {
 	if relay.senderFunctions == nil {
-		relay.senderFunctions = make(map[int]func(GotifyMessageStruct))
+		relay.senderFunctions = make(map[int]func(structs.GotifyMessageStruct))
 	}
 	count := len(relay.senderFunctions)
 
@@ -120,11 +140,26 @@ func (relay *Relay) ClearSenders() int {
 	return count
 }
 
-func (relay *Relay) RemoveSender(index int) {
+func (relay *Relay) RemoveTransmitter(index int) {
+	if relay.transmitters == nil {
+		relay.transmitters = make(map[int]structs.Transmitter)
+	}
+	delete(relay.transmitters, index)
+}
+
+func (relay *Relay) RemoveTransmitFunction(index int) {
 	if relay.senderFunctions == nil {
-		relay.senderFunctions = make(map[int]func(GotifyMessageStruct))
+		relay.senderFunctions = make(map[int]func(structs.GotifyMessageStruct))
 	}
 	delete(relay.senderFunctions, index)
+}
+
+func (relay *Relay) GetTransmitters() map[int]structs.Transmitter {
+	if relay.transmitters == nil {
+		relay.transmitters = make(map[int]structs.Transmitter)
+	}
+
+	return relay.transmitters
 }
 
 func (relay *Relay) Stop() error {

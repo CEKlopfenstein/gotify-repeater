@@ -3,7 +3,6 @@ package main
 import (
 	_ "embed"
 	"errors"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -44,13 +43,11 @@ type GotifyRelayPlugin struct {
 // Enable enables the plugin.
 func (c *GotifyRelayPlugin) Enable() error {
 	var server = server.SetupServer(c.hostName, c.config.ClientToken)
-	var discord = transmitter.BuildDiscordTransmitter(server, c.config.DiscordWebHook, info.Name)
+	var discord = transmitter.BuildDiscordTransmitter(c.config.DiscordWebHook, info.Name)
 	c.relay.SetServer(server)
-	c.relay.ClearSenders()
-	c.relay.AddSender(func(msg relay.GotifyMessageStruct) {
-		log.Println(msg)
-	})
-	c.relay.AddSender(discord.BuildTransmitterFunction())
+	c.relay.ClearTransmitFunctions()
+	c.relay.AddTransmitter(transmitter.LogTransmittor{})
+	c.relay.AddTransmitter(discord)
 	go c.relay.Start()
 	return nil
 }

@@ -7,12 +7,24 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/CEKlopfenstein/gotify-repeater/relay"
 	"github.com/CEKlopfenstein/gotify-repeater/server"
+	"github.com/CEKlopfenstein/gotify-repeater/structs"
 )
 
+type LogTransmittor struct {
+}
+
+func (trans LogTransmittor) BuildTransmitterFunction() func(msg structs.GotifyMessageStruct, server server.Server) {
+	return func(msg structs.GotifyMessageStruct, server server.Server) {
+		log.Println(msg)
+	}
+}
+
+func (trans LogTransmittor) HTMLCard() string {
+	return "<div><h2>Log Transmitter</h2><div>\"Transmits\" the message to the Logs. Useful for Debugging.</div></div>"
+}
+
 type DiscordTransmitter struct {
-	server   server.Server
 	username string
 	discord  string
 }
@@ -26,8 +38,8 @@ type DiscordHookInfo struct {
 	Name string
 }
 
-func BuildDiscordTransmitter(server server.Server, discordHook string, name string) DiscordTransmitter {
-	var transmitter = DiscordTransmitter{server: server, discord: discordHook}
+func BuildDiscordTransmitter(discordHook string, name string) DiscordTransmitter {
+	var transmitter = DiscordTransmitter{discord: discordHook}
 
 	var hookInfo, err = transmitter.getHookInfo()
 	if err != nil {
@@ -60,10 +72,10 @@ func (trans *DiscordTransmitter) getHookInfo() (DiscordHookInfo, error) {
 	return hookInfo, nil
 }
 
-func (trans *DiscordTransmitter) BuildTransmitterFunction() func(msg relay.GotifyMessageStruct) {
-	return func(msg relay.GotifyMessageStruct) {
+func (trans DiscordTransmitter) BuildTransmitterFunction() func(msg structs.GotifyMessageStruct, server server.Server) {
+	return func(msg structs.GotifyMessageStruct, server server.Server) {
 		username := trans.username
-		application, err := trans.server.GetApplication(msg.Appid)
+		application, err := server.GetApplication(msg.Appid)
 		if err == nil {
 			username = application.Name
 		}
@@ -83,4 +95,16 @@ func (trans *DiscordTransmitter) BuildTransmitterFunction() func(msg relay.Gotif
 			log.Println("Discord Webhook returned response other than 204. Response:", resp.Status)
 		}
 	}
+}
+
+func (trans DiscordTransmitter) HTMLCard() string {
+	var toReturn = `<div>
+	<h2>Discord Webhook</h2>
+	<div>
+		<div>Default Username: ` + trans.username + `</div>
+		<div>Webhook URL: ` + trans.discord + `</div>
+	</div>
+	</div>`
+
+	return toReturn
 }

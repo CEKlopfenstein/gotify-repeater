@@ -127,6 +127,15 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		ctx.Data(http.StatusOK, "text/html", []byte(ctx.Request.Header.Get("X-Gotify-Key")))
 	})
 
+	mux.GET("/transmitters", func(ctx *gin.Context) {
+		var transmitters = relay.GetTransmitters()
+		var cards = ""
+		for key := range transmitters {
+			cards += transmitters[key].HTMLCard()
+		}
+		ctx.Data(http.StatusOK, "text/html", []byte(cards))
+	})
+
 	mux.GET("/test", func(ctx *gin.Context) {
 		log.Println(ctx.Request.Header.Get("X-Gotify-Key"))
 		ctx.Data(http.StatusOK, "text/html", []byte(pageData.pluginToken))
