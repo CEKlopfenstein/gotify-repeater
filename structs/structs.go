@@ -21,6 +21,13 @@ type GotifyMessageStruct struct {
 }
 
 type Transmitter interface {
-	BuildTransmitterFunction() func(msg GotifyMessageStruct, server server.Server)
 	HTMLCard() string
+	GetStorageValue(int) TransmitterStorage
+	Transmit(msg GotifyMessageStruct, server server.Server)
+}
+
+type TransmitterStorage struct {
+	Id              int
+	TransmitterType string
+	URL             string
 }

@@ -3,6 +3,9 @@
         <h2>General Info</h2>
         <div>
             <div>Logged In Token: <span hx-get="getLoginToken" hx-trigger="load"></span></div>
+            <div hx-target="this" hx-swap="outerHTML">
+                <div hx-get="defaultToken" hx-trigger="load"></div>
+            </div>
         </div>
     </div>
     {{range .Cards}}

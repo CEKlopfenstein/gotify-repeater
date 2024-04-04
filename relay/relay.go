@@ -88,7 +88,7 @@ func (relay *Relay) startSender() {
 				relay.senderFunctions[key](gotifyMessage)
 			}
 			for key := range relay.transmitters {
-				relay.transmitters[key].BuildTransmitterFunction()(gotifyMessage, relay.server)
+				relay.transmitters[key].Transmit(gotifyMessage, relay.server)
 			}
 		}
 	}()
@@ -112,6 +112,17 @@ func (relay *Relay) AddTransmitter(sender structs.Transmitter) int {
 	relay.nextTransmitterID++
 	relay.transmitters[id] = sender
 	return id
+}
+
+func (relay *Relay) SetTransmitter(id int, sender structs.Transmitter) {
+	if relay.transmitters == nil {
+		relay.transmitters = make(map[int]structs.Transmitter)
+	}
+
+	if id >= relay.nextTransmitterID {
+		relay.nextTransmitterID = id + 1
+	}
+	relay.transmitters[id] = sender
 }
 
 func (relay *Relay) ClearTransmitters() int {

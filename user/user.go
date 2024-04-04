@@ -3,15 +3,15 @@ package user
 import (
 	"bytes"
 	_ "embed"
-	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
 
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
+	"github.com/CEKlopfenstein/gotify-repeater/server"
+	"github.com/CEKlopfenstein/gotify-repeater/storage"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	"github.com/gin-gonic/gin"
-	"github.com/gotify/plugin-api"
 )
 
 //go:embed main.html
@@ -52,7 +52,7 @@ func buildConfigCard(config *structs.Config) template.HTML {
 	return template.HTML(doc.String())
 }
 
-func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, hookConfig *structs.Config, c plugin.StorageHandler) {
+func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, hookConfig *structs.Config, c storage.Storage, hostname string) {
 	var cards = []card{}
 	cards = append(cards, card{Title: "Discord Hook", Body: buildConfigCard(hookConfig)})
 	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards, MainJSPath: "main.js"}
@@ -105,6 +105,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 	})
 
+	internalServer := server.SetupServer(hostname, "")
 	mux.Use(func(ctx *gin.Context) {
 		var clientKey = ctx.Request.Header.Get("X-Gotify-Key")
 		if len(clientKey) == 0 {
@@ -112,9 +113,10 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 			ctx.Done()
 			return
 		}
-		var server = relay.GetServer()
-		var failed = server.CheckToken(clientKey)
+
+		var failed = internalServer.UpdateToken(clientKey)
 		if failed != nil {
+			log.Println(failed)
 			ctx.Data(http.StatusUnauthorized, "application/json", []byte(failed.Error()))
 			ctx.Done()
 			return
@@ -141,24 +143,8 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		ctx.Data(http.StatusOK, "text/html", []byte(pageData.pluginToken))
 	})
 
-	type contact struct {
-		FirstName string
-		LastName  string
-		Email     string
-	}
-
 	mux.GET("/contact", func(ctx *gin.Context) {
-		storageBytes, _ := c.Load()
-		var contactInfo = contact{}
-		if len(storageBytes) == 0 {
-			contactInfo.FirstName = ""
-			contactInfo.LastName = ""
-			contactInfo.Email = ""
-			storageBytes, _ = json.Marshal(contactInfo)
-			c.Save(storageBytes)
-		} else {
-			json.Unmarshal(storageBytes, &contactInfo)
-		}
+		contactInfo := c.GetContact()
 		ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
         <div><label>First Name</label>: `+contactInfo.FirstName+`</div>
         <div><label>Last Name</label>: `+contactInfo.LastName+`</div>
@@ -170,17 +156,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 	})
 
 	mux.GET("/edit", func(ctx *gin.Context) {
-		storageBytes, _ := c.Load()
-		var contactInfo = contact{}
-		if len(storageBytes) == 0 {
-			contactInfo.FirstName = ""
-			contactInfo.LastName = ""
-			contactInfo.Email = ""
-			storageBytes, _ = json.Marshal(contactInfo)
-			c.Save(storageBytes)
-		} else {
-			json.Unmarshal(storageBytes, &contactInfo)
-		}
+		var contactInfo = c.GetContact()
 		ctx.Data(http.StatusOK, "text/html", []byte(`<form hx-put="contact" hx-target="this" hx-swap="outerHTML">
 		<div>
 		  <label>First Name</label>
@@ -200,12 +176,53 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 	})
 
 	mux.PUT("/contact", func(ctx *gin.Context) {
-		var contactInfo = contact{}
+		var contactInfo = storage.Contact{}
 		contactInfo.FirstName = ctx.PostForm("firstName")
 		contactInfo.LastName = ctx.PostForm("lastName")
 		contactInfo.Email = ctx.PostForm("email")
-		storageBytes, _ := json.Marshal(contactInfo)
-		c.Save(storageBytes)
+		c.SaveContact(contactInfo)
 		ctx.Redirect(303, "contact")
+	})
+
+	mux.GET("/defaultToken", func(ctx *gin.Context) {
+		var token = c.GetClientToken()
+		if len(token) == 0 {
+			ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
+			<div>No Token Set. Select an option below to set one.</div>
+			<button hx-put="defaultToken" hx-vals='js:{"token":localStorage.getItem("gotify-login-key")}'>Use Current Client Token</button><button hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
+			</div>`))
+		} else {
+			ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
+			<div>Current Default Token: `+token+`</div>
+			<div>Use Options Below to Change Token</div>
+			<button hx-put="defaultToken" hx-vals='js:{"token":localStorage.getItem("gotify-login-key")}'>Use Current Client Token</button><button hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
+			</div>`))
+		}
+
+	})
+
+	mux.PUT("/defaultToken", func(ctx *gin.Context) {
+		var token = ctx.PostForm("token")
+
+		if token == "new" {
+			currentToken := c.GetClientToken()
+			if internalServer.CheckToken(currentToken) == nil {
+				client := internalServer.FindClientFromToken(currentToken)
+				log.Println(client)
+				if len(client.Token) != 0 && client.Token != ctx.GetHeader("X-Gotify-Key") && client.Name == "Relay Client" {
+					internalServer.DeleteClient(client.Id)
+				}
+			}
+			newClient, err := internalServer.CreateClient("Relay Client")
+			if err != nil {
+				log.Println(err)
+				ctx.Redirect(303, "defaultToken")
+				return
+			}
+			token = newClient.Token
+		}
+
+		c.SaveClientToken(token)
+		ctx.Redirect(303, "defaultToken")
 	})
 }

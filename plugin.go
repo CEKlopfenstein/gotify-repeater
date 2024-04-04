@@ -2,14 +2,13 @@ package main
 
 import (
 	_ "embed"
-	"errors"
-	"net/http"
 	"net/url"
 	"strconv"
 
 	"github.com/CEKlopfenstein/gotify-repeater/config"
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
 	"github.com/CEKlopfenstein/gotify-repeater/server"
+	"github.com/CEKlopfenstein/gotify-repeater/storage"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	"github.com/CEKlopfenstein/gotify-repeater/transmitter"
 	"github.com/CEKlopfenstein/gotify-repeater/user"
@@ -32,22 +31,26 @@ func GetGotifyPluginInfo() plugin.Info {
 
 // GotifyRelayPlugin is the gotify plugin instance.
 type GotifyRelayPlugin struct {
-	userCtx        plugin.UserContext
-	config         *structs.Config
-	relay          relay.Relay
-	basePath       string
-	hostName       string
-	storageHandler plugin.StorageHandler
+	userCtx  plugin.UserContext
+	config   *structs.Config
+	relay    relay.Relay
+	basePath string
+	hostName string
+	storage  storage.Storage
 }
 
 // Enable enables the plugin.
 func (c *GotifyRelayPlugin) Enable() error {
-	var server = server.SetupServer(c.hostName, c.config.ClientToken)
-	var discord = transmitter.BuildDiscordTransmitter(c.config.DiscordWebHook, info.Name)
+	var server = server.SetupServer(c.hostName, c.storage.GetClientToken())
+	// var discord = transmitter.BuildDiscordTransmitter(c.config.DiscordWebHook, info.Name)
 	c.relay.SetServer(server)
 	c.relay.ClearTransmitFunctions()
-	c.relay.AddTransmitter(transmitter.LogTransmittor{})
-	c.relay.AddTransmitter(discord)
+	transmitters := c.storage.GetTransmitters()
+	for i := 0; i < len(transmitters); i++ {
+		c.relay.SetTransmitter(transmitters[i].Id, transmitter.RehydrateTransmitter(transmitters[i]))
+	}
+	// c.relay.AddTransmitter(transmitter.LogTransmittor{})
+	// c.relay.AddTransmitter(discord)
 	go c.relay.Start()
 	return nil
 }
@@ -55,6 +58,12 @@ func (c *GotifyRelayPlugin) Enable() error {
 // Disable disables the plugin.
 func (c *GotifyRelayPlugin) Disable() error {
 	c.relay.Stop()
+	transmitters := c.relay.GetTransmitters()
+	var transToStore []structs.TransmitterStorage
+	for key := range transmitters {
+		transToStore = append(transToStore, transmitters[key].GetStorageValue(key))
+	}
+	c.storage.SaveTransmitters(transToStore)
 	return nil
 }
 
@@ -73,62 +82,13 @@ func (c *GotifyRelayPlugin) GetDisplay(location *url.URL) string {
 	return toReturn
 }
 
-// Set Default Values of Config
-func (c *GotifyRelayPlugin) DefaultConfig() interface{} {
-	return &structs.Config{
-		DiscordWebHook: "",
-		ClientToken:    "",
-		ServerURL:      "http://localhost",
-	}
-}
-
-func (c *GotifyRelayPlugin) ValidateAndSetConfig(cd interface{}) error {
-	config := cd.(*structs.Config)
-	// Validation of Discord Webhook
-	if len(config.DiscordWebHook) == 0 {
-		return errors.New("discord Webhook required")
-	} else {
-		resp, err := http.Get(config.DiscordWebHook)
-		if err != nil {
-			return errors.Join(errors.New("discord Webhook invalid"), err)
-		} else if resp.StatusCode != http.StatusOK {
-			return errors.New("discord Webhook invalid. Discord returned value other than success")
-		}
-	}
-
-	// Validation of local server URL
-	if len(config.ServerURL) == 0 {
-		return errors.New("server url invalid")
-	} else {
-		u, err := url.Parse(config.ServerURL)
-		if err != nil {
-			return errors.Join(errors.New("server url invalid"), err)
-		}
-		switch u.Scheme {
-		case "http":
-		case "https":
-		default:
-			return errors.New("server URL invalid URL must be HTTP or HTTPS")
-		}
-		if len(u.Path) > 0 {
-			return errors.New("server URL invalid URL must not include a path")
-		}
-	}
-
-	if len(config.ClientToken) == 0 {
-		return errors.New("client token required")
-	}
-	c.config = config
-	return nil
-}
-
 func (c *GotifyRelayPlugin) RegisterWebhook(basePath string, mux *gin.RouterGroup) {
 	c.basePath = basePath
-	user.BuildInterface(basePath, mux, &c.relay, c.config, c.storageHandler)
+	user.BuildInterface(basePath, mux, &c.relay, c.config, c.storage, c.hostName)
 }
 
 func (c *GotifyRelayPlugin) SetStorageHandler(h plugin.StorageHandler) {
-	c.storageHandler = h
+	c.storage.StorageHandler = h
 }
 
 // NewGotifyPluginInstance creates a plugin instance for a user context.
