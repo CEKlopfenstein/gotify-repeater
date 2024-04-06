@@ -16,7 +16,8 @@ type Storage struct {
 type innerStorageStruct struct {
 	Contact      Contact
 	ClientToken  string
-	Transmitters []structs.TransmitterStorage
+	Transmitters map[int]structs.TransmitterStorage
+	NextID       int
 }
 
 type Contact struct {
@@ -45,6 +46,10 @@ func (storage *Storage) load() {
 	} else {
 		json.Unmarshal(storageBytes, &storage.innerStore)
 	}
+
+	if storage.innerStore.Transmitters == nil {
+		storage.innerStore.Transmitters = make(map[int]structs.TransmitterStorage)
+	}
 }
 
 func (storage *Storage) GetContact() Contact {
@@ -67,12 +72,24 @@ func (storage *Storage) SaveClientToken(token string) {
 	storage.save()
 }
 
-func (storage *Storage) GetTransmitters() []structs.TransmitterStorage {
+func (storage *Storage) GetTransmitters() map[int]structs.TransmitterStorage {
 	storage.load()
 	return storage.innerStore.Transmitters
 }
 
-func (storage *Storage) SaveTransmitters(transmitters []structs.TransmitterStorage) {
+func (storage *Storage) SaveTransmitters(transmitters map[int]structs.TransmitterStorage) {
 	storage.innerStore.Transmitters = transmitters
 	storage.save()
+}
+
+func (storage *Storage) AddTransmitter(transmitter structs.TransmitterStorage) int {
+	var id = storage.innerStore.NextID
+	storage.innerStore.Transmitters[id] = transmitter
+	storage.innerStore.NextID++
+	storage.save()
+	return id
+}
+
+func (storage *Storage) GetCurrentTransmitterNextID() int {
+	return storage.innerStore.NextID
 }

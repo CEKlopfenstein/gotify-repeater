@@ -1,7 +1,5 @@
 package structs
 
-import "github.com/CEKlopfenstein/gotify-repeater/server"
-
 // Contains Structs that I need to be able to have intialized in other packages.
 // Without causing circular dependancies.
 
@@ -20,14 +18,9 @@ type GotifyMessageStruct struct {
 	Priority int
 }
 
-type Transmitter interface {
-	HTMLCard() string
-	GetStorageValue(int) TransmitterStorage
-	Transmit(msg GotifyMessageStruct, server server.Server)
-}
-
 type TransmitterStorage struct {
 	Id              int
+	Active          bool
 	TransmitterType string
 	URL             string
 }

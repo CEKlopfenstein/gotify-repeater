@@ -1,0 +1,16 @@
+<div>
+    <h2>Discord Webhook</h2>
+    <span class="corner">
+        <button class="refresh" hx-get='transmitter/{{.ID}}' hx-swap="outerHTML" hx-trigger="click"
+            hx-target="closest div">Refresh</button>
+        <button hx-delete="transmitter/{{.ID}}" hx-swap="outerHTML" hx-trigger="click" hx-target="closest div"
+            hx-confirm="Are you sure you want to delete this transmitter?">Delete</button>
+    </span>
+    <div>
+        <div>Default Username: {{.Username}}</div>
+        <div>Webhook URL: {{.DiscordURL}}</div>
+        <div><label for="active">Active:</label><input hx-put="transmitter/{{.ID}}/status" hx-trigger="click"
+                type="checkbox" name="active" id="active" {{.Status}}></div>
+    </div>
+
+</div>

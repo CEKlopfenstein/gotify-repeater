@@ -10,7 +10,6 @@ import (
 	"github.com/CEKlopfenstein/gotify-repeater/server"
 	"github.com/CEKlopfenstein/gotify-repeater/storage"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
-	"github.com/CEKlopfenstein/gotify-repeater/transmitter"
 	"github.com/CEKlopfenstein/gotify-repeater/user"
 	"github.com/gin-gonic/gin"
 	"github.com/gotify/plugin-api"
@@ -42,15 +41,12 @@ type GotifyRelayPlugin struct {
 // Enable enables the plugin.
 func (c *GotifyRelayPlugin) Enable() error {
 	var server = server.SetupServer(c.hostName, c.storage.GetClientToken())
-	// var discord = transmitter.BuildDiscordTransmitter(c.config.DiscordWebHook, info.Name)
+	// var discord = discordTransmitter.BuildDiscordTransmitter("", info.Name, true)
 	c.relay.SetServer(server)
+	c.relay.SetStorage(c.storage)
 	c.relay.ClearTransmitFunctions()
-	transmitters := c.storage.GetTransmitters()
-	for i := 0; i < len(transmitters); i++ {
-		c.relay.SetTransmitter(transmitters[i].Id, transmitter.RehydrateTransmitter(transmitters[i]))
-	}
-	// c.relay.AddTransmitter(transmitter.LogTransmittor{})
-	// c.relay.AddTransmitter(discord)
+	// c.relay.AddTransmitter(logTransmitter.LogTransmittor{})
+	// c.relay.AddTransmitter(&discord)
 	go c.relay.Start()
 	return nil
 }
@@ -58,12 +54,6 @@ func (c *GotifyRelayPlugin) Enable() error {
 // Disable disables the plugin.
 func (c *GotifyRelayPlugin) Disable() error {
 	c.relay.Stop()
-	transmitters := c.relay.GetTransmitters()
-	var transToStore []structs.TransmitterStorage
-	for key := range transmitters {
-		transToStore = append(transToStore, transmitters[key].GetStorageValue(key))
-	}
-	c.storage.SaveTransmitters(transToStore)
 	return nil
 }
 

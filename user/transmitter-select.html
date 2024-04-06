@@ -1,0 +1,6 @@
+<select name="transmitter" id="transmitter" hx-put="transmitter-select" hx-target="next" hx-swap="outerHTML">
+<option style="display:none"></option>
+{{range $key, $value := .Types}}
+<option value="{{$key}}">{{$value}}</option>
+{{end}}
+</select>

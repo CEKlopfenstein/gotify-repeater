@@ -21,6 +21,14 @@
         </div>
     </div>
     <div hx-get="transmitters" hx-trigger="load" hx-swap="outerHTML">
+    </div>
+    <div class="newTransmitters">
+        <h2>New Transmitter</h2>
+        <label for="transmitter">Transmitter Type</label>
+        <select name="transmitter" id="transmitter" hx-get="transmitter-options" hx-trigger="load" hx-target="this" hx-swap="outerHTML">
+        </select>
+        <form>
 
+        </form>
     </div>
 </div>
