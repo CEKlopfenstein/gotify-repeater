@@ -36,7 +36,6 @@ type userPage struct {
 	HtmxBasePath string
 	Cards        []card
 	MainJSPath   string
-	pluginToken  string
 }
 
 type card struct {
@@ -48,9 +47,6 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 	var cards = []card{}
 	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards, MainJSPath: "main.js"}
 
-	log.Println(basePath)
-	log.Println(mux.BasePath())
-
 	mux.GET("/"+pageData.HtmxBasePath, func(ctx *gin.Context) {
 		ctx.Data(http.StatusOK, "text/javascript", []byte(htmxMinJS))
 	})
@@ -59,7 +55,6 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 	})
 
 	mux.GET("/", func(ctx *gin.Context) {
-		log.Println(ctx.Request.Host)
 		var clientKey = ctx.Request.Header.Get("X-Gotify-Key")
 		if len(clientKey) == 0 {
 			tmpl, err := template.New("").Parse(wrapper)
@@ -207,11 +202,6 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		ctx.Data(http.StatusBadRequest, "text/html", []byte("<div>Invalid Transmitter Type Selected</div>"))
 	})
 
-	mux.GET("/test", func(ctx *gin.Context) {
-		log.Println(ctx.GetString("token"))
-		ctx.Data(http.StatusOK, "text/html", []byte(pageData.pluginToken))
-	})
-
 	mux.GET("/contact", func(ctx *gin.Context) {
 		contactInfo := c.GetContact()
 		ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
@@ -222,35 +212,6 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
         Click To Edit
         </button>
     </div>`))
-	})
-
-	mux.GET("/edit", func(ctx *gin.Context) {
-		var contactInfo = c.GetContact()
-		ctx.Data(http.StatusOK, "text/html", []byte(`<form hx-put="contact" hx-target="this" hx-swap="outerHTML">
-		<div>
-		  <label>First Name</label>
-		  <input type="text" name="firstName" value="`+contactInfo.FirstName+`">
-		</div>
-		<div class="form-group">
-		  <label>Last Name</label>
-		  <input type="text" name="lastName" value="`+contactInfo.LastName+`">
-		</div>
-		<div class="form-group">
-		  <label>Email Address</label>
-		  <input type="email" name="email" value="`+contactInfo.Email+`">
-		</div>
-		<button class="btn">Submit</button>
-		<button class="btn" hx-get="contact">Cancel</button>
-	  </form>`))
-	})
-
-	mux.PUT("/contact", func(ctx *gin.Context) {
-		var contactInfo = storage.Contact{}
-		contactInfo.FirstName = ctx.PostForm("firstName")
-		contactInfo.LastName = ctx.PostForm("lastName")
-		contactInfo.Email = ctx.PostForm("email")
-		c.SaveContact(contactInfo)
-		ctx.Redirect(303, "contact")
 	})
 
 	mux.GET("/defaultToken", func(ctx *gin.Context) {
@@ -278,7 +239,6 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 			currentToken := c.GetClientToken()
 			if internalServer.CheckToken(currentToken) == nil {
 				client := internalServer.FindClientFromToken(currentToken)
-				log.Println(client)
 				if len(client.Token) != 0 && client.Token != headerToken && client.Name == "Relay Client" {
 					internalServer.DeleteClient(client.Id)
 				}
@@ -292,7 +252,8 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 			token = newClient.Token
 		}
 
-		c.SaveClientToken(token)
+		relay.UpdateToken(token)
+
 		ctx.Redirect(303, "defaultToken")
 	})
 }

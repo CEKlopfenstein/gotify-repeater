@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"log"
 	"net/url"
 	"strconv"
 
@@ -40,6 +41,7 @@ type GotifyRelayPlugin struct {
 
 // Enable enables the plugin.
 func (c *GotifyRelayPlugin) Enable() error {
+	log.Println("Client Token: ", c.storage.GetClientToken())
 	var server = server.SetupServer(c.hostName, c.storage.GetClientToken())
 	// var discord = discordTransmitter.BuildDiscordTransmitter("", info.Name, true)
 	c.relay.SetServer(server)

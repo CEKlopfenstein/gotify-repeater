@@ -85,12 +85,9 @@ func (trans LogTransmittor) GetStorageValue(id int) structs.TransmitterStorage {
 }
 
 func (trans LogTransmittor) Active() bool {
-	log.Println("Log Status:", trans.status)
 	return trans.status
 }
 
 func (trans *LogTransmittor) SetStatus(active bool) {
-	log.Println("Old Log Status:", trans.status)
 	trans.status = active
-	log.Println("New Log Status:", trans.status)
 }

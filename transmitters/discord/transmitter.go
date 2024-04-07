@@ -88,7 +88,6 @@ func (trans *DiscordTransmitter) getHookInfo() (DiscordHookInfo, error) {
 	if err != nil {
 		return hookInfo, err
 	}
-	log.Println(hookInfo)
 	return hookInfo, nil
 }
 

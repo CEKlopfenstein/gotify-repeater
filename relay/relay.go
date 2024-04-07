@@ -58,6 +58,19 @@ func (relay *Relay) Start() {
 	relay.startSender()
 }
 
+func (relay *Relay) UpdateToken(token string) error {
+	relay.storage.SaveClientToken(token)
+	err := relay.server.UpdateToken(token)
+	if err != nil {
+		return err
+	}
+	err = relay.connectToStream()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (relay *Relay) connectToStream() error {
 	if relay.listener != nil {
 		log.Println("Active Connection Found Closing")
@@ -197,11 +210,14 @@ func (relay *Relay) SetTransmitterStatus(id int, status bool) {
 
 func (relay *Relay) Stop() error {
 	relay.saveTransmitters()
-	var con = relay.listener
-	relay.listener = nil
-	var err = con.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	if err != nil {
-		log.Println("Error while Closing Connection:", err)
+	if relay.listener != nil {
+		var con = relay.listener
+		relay.listener = nil
+		var err = con.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		if err != nil {
+			log.Println("Error while Closing Connection:", err)
+		}
+		return err
 	}
-	return err
+	return nil
 }

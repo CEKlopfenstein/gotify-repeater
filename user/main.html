@@ -14,12 +14,6 @@
         {{.Body}}
     </div>
     {{end}}
-    <div>
-        <h2>Test Config</h2>
-        <div hx-target="this" hx-swap="outerHTML">
-            <div hx-get="contact" hx-trigger="load"></div>
-        </div>
-    </div>
     <div hx-get="transmitters" hx-trigger="load" hx-swap="outerHTML">
     </div>
     <div class="newTransmitters">
