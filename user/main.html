@@ -1,5 +1,5 @@
-<div class="main">
-    <div>
+<div class="text-white d-flex align-items-center flex-column width-limit">
+    <div class="bg-card p-3 rounded shadow m-3 w-100">
         <h2>General Info</h2>
         <div>
             <div>Logged In Token: <span hx-get="getLoginToken" hx-trigger="load"></span></div>
@@ -9,14 +9,14 @@
         </div>
     </div>
     {{range .Cards}}
-    <div>
+    <div class="bg-card p-3 rounded shadow m-3 w-100">
         <h2>{{.Title}}</h2>
         {{.Body}}
     </div>
     {{end}}
     <div hx-get="transmitters" hx-trigger="load" hx-swap="outerHTML">
     </div>
-    <div class="newTransmitters">
+    <div id="newTransmitters" class="bg-card p-3 rounded shadow m-3 w-100">
         <h2>New Transmitter</h2>
         <label for="transmitter">Transmitter Type</label>
         <select name="transmitter" id="transmitter" hx-get="transmitter-options" hx-trigger="load" hx-target="this" hx-swap="outerHTML">

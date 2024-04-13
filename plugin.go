@@ -37,10 +37,12 @@ type GotifyRelayPlugin struct {
 	basePath string
 	hostName string
 	storage  storage.Storage
+	enabled  bool
 }
 
 // Enable enables the plugin.
 func (c *GotifyRelayPlugin) Enable() error {
+	c.enabled = true
 	log.Println("Client Token: ", c.storage.GetClientToken())
 	var server = server.SetupServer(c.hostName, c.storage.GetClientToken())
 	// var discord = discordTransmitter.BuildDiscordTransmitter("", info.Name, true)
@@ -55,21 +57,24 @@ func (c *GotifyRelayPlugin) Enable() error {
 
 // Disable disables the plugin.
 func (c *GotifyRelayPlugin) Disable() error {
+	c.enabled = false
 	c.relay.Stop()
 	return nil
 }
-
-//go:embed SetupHints.md
-var setupHints string
 
 func (c *GotifyRelayPlugin) GetDisplay(location *url.URL) string {
 	var toReturn = ""
 
 	toReturn += "## Version: " + info.Version + "\n\n## Description:\n" + info.Description + "\n\n"
 
-	toReturn += setupHints
+	if len(c.storage.GetClientToken()) == 0 {
+		toReturn += "Missing Token. Go to Config Page to setup.\n\n"
+	}
 
-	toReturn += "\n\n## [Config Page](" + c.basePath + ")"
+	toReturn += "## [Config Page](" + c.basePath + ")"
+	if !c.enabled {
+		toReturn += " is only accessible if plugin is enabled.\n\n"
+	}
 
 	return toReturn
 }

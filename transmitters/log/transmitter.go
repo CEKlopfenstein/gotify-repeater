@@ -35,7 +35,7 @@ func HTMLNewForm(transmitterType string) []byte {
 		<div>
 		  No farther values required. Click Submit to create.
 		</div>
-		<button class="btn">Submit</button>
+		<button class="btn btn-primary">Submit</button>
 	  </form>`
 	return []byte(test)
 }
@@ -48,7 +48,7 @@ func HTMLCreate(transmitterType string, ctx *gin.Context, storeFunction func(tra
 	<div>
 	  No farther values required. Click Submit to create.
 	</div>
-	<button class="btn">Submit</button>
+	<button class="btn btn-primary">Submit</button>
   </form>`
 	return []byte(test)
 }

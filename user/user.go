@@ -32,10 +32,14 @@ var mainJS string
 //go:embed transmitter-select.html
 var transmitterSelect string
 
+//go:embed bootstrap.min.css
+var bootstrap string
+
 type userPage struct {
 	HtmxBasePath string
 	Cards        []card
 	MainJSPath   string
+	Bootstrap    string
 }
 
 type card struct {
@@ -45,13 +49,16 @@ type card struct {
 
 func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, hookConfig *structs.Config, c storage.Storage, hostname string) {
 	var cards = []card{}
-	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards, MainJSPath: "main.js"}
+	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards, MainJSPath: "main.js", Bootstrap: "bootstrap.min.css"}
 
 	mux.GET("/"+pageData.HtmxBasePath, func(ctx *gin.Context) {
 		ctx.Data(http.StatusOK, "text/javascript", []byte(htmxMinJS))
 	})
 	mux.GET("/"+pageData.MainJSPath, func(ctx *gin.Context) {
 		ctx.Data(http.StatusOK, "text/javascript", []byte(mainJS))
+	})
+	mux.GET("/"+pageData.Bootstrap, func(ctx *gin.Context) {
+		ctx.Data(http.StatusOK, "text/css", []byte(bootstrap))
 	})
 
 	mux.GET("/", func(ctx *gin.Context) {
@@ -165,7 +172,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 		relay.SetTransmitterStatus(id, boolStatus)
 
-		ctx.Data(http.StatusOK, "text/html", []byte(fmt.Sprintf(`<input hx-put="transmitter/%d/status" hx-trigger="click changed" type="checkbox" value="%s" name="active">`, id, status)))
+		ctx.Data(http.StatusOK, "text/html", []byte(fmt.Sprintf(`<input class="form-check-input" hx-put="transmitter/%d/status" hx-trigger="click changed" type="checkbox" value="%s" name="active">`, id, status)))
 	})
 
 	mux.GET("/transmitter-options", func(ctx *gin.Context) {
@@ -202,30 +209,18 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		ctx.Data(http.StatusBadRequest, "text/html", []byte("<div>Invalid Transmitter Type Selected</div>"))
 	})
 
-	mux.GET("/contact", func(ctx *gin.Context) {
-		contactInfo := c.GetContact()
-		ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
-        <div><label>First Name</label>: `+contactInfo.FirstName+`</div>
-        <div><label>Last Name</label>: `+contactInfo.LastName+`</div>
-        <div><label>Email</label>: `+contactInfo.Email+`</div>
-        <button hx-get="edit" class="btn btn-primary">
-        Click To Edit
-        </button>
-    </div>`))
-	})
-
 	mux.GET("/defaultToken", func(ctx *gin.Context) {
 		var token = c.GetClientToken()
 		if len(token) == 0 {
 			ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
 			<div>No Token Set. Select an option below to set one.</div>
-			<button hx-put="defaultToken" hx-vals='js:{"token":localStorage.getItem("gotify-login-key")}'>Use Current Client Token</button><button hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
+			<button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='js:{"token":localStorage.getItem("gotify-login-key")}'>Use Current Client Token</button><button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
 			</div>`))
 		} else {
 			ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
 			<div>Current Default Token: `+token+`</div>
 			<div>Use Options Below to Change Token</div>
-			<button hx-put="defaultToken" hx-vals='js:{"token":localStorage.getItem("gotify-login-key")}'>Use Current Client Token</button><button hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
+			<button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='js:{"token":localStorage.getItem("gotify-login-key")}'>Use Current Client Token</button><button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
 			</div>`))
 		}
 

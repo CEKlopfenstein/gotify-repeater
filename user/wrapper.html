@@ -8,51 +8,28 @@
     <title>Gotify Relay</title>
     <script src="{{.HtmxBasePath}}"></script>
     <style>
-        .header{
-            color: #fff;
-            background-color: #3f51b5;
-            padding: 0.1rem;
-        }
-        .header > a {
-            color: #fff;
-        }
-        body{
-            color: #fff;
+        .bg-backdrop{
             background-color: #303030;
-            min-height: 100vh;
-            margin: 0;
         }
-        .main{
-            max-width: calc(800px - (30px*2));
-            margin-left: auto;
-            margin-right: auto;
-            padding-left: 30px;
-            padding-right: 30px;
-        }
-        .main > div{
-            border-radius: 0.5rem;
+        .bg-card{
             background-color: #424242;
-            padding: 0.5rem;
-            margin-top: 0.5rem;
-            position: relative;
         }
-        .main > div > h2:first-child {
-            border-bottom: #fff solid 0.1rem;
-        }
-        
-        span.corner{
-            position:absolute;
-            top:0;
-            right:0;
-            width: fit-content;
+        .width-limit{
+            max-width: -webkit-calc(800px - (30px * 2));
+            max-width: calc(800px - (30px * 2));
+            margin-right: auto;
+            margin-left: auto;
+            padding-right: 30px;
+            padding-left: 30px;
         }
     </style>
+    <link rel="stylesheet" href="{{.Bootstrap}}">
     <script src="{{.MainJSPath}}"></script>
 </head>
 
-<body hx-get="" hx-headers='js:{"X-Gotify-Key":localStorage.getItem("gotify-login-key")}' hx-trigger="load" hx-swap="afterend" hx-target=".header" hx-disinherit="*" hx-inherit="hx-headers">
-    <div class="header">
-        <a href="/">
+<body hx-get="" hx-headers='js:{"X-Gotify-Key":localStorage.getItem("gotify-login-key")}' hx-trigger="load" hx-swap="afterend" hx-target="#header" hx-disinherit="*" hx-inherit="hx-headers" class="bg-backdrop">
+    <div id="header" class="bg-primary p-3">
+        <a href="/" class="link-light">
             <h2>Gotify</h2>
         </a>
     </div>

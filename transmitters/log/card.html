@@ -1,14 +1,17 @@
-<div>
+<div class="bg-card p-3 rounded shadow m-3 w-100 position-relative">
     <h2>Log Transmitter</h2>
-    <span class="corner">
+    <span class="position-absolute top-0 end-0 p-1">
         <button hx-get='transmitter/{{.ID}}' hx-swap="outerHTML" hx-trigger="click"
-            hx-target="closest div">Refresh</button>
+            hx-target="closest div" class="btn btn-secondary">Refresh</button>
         <button hx-delete="transmitter/{{.ID}}" hx-swap="outerHTML" hx-trigger="click" hx-target="closest div"
-            hx-confirm="Are you sure you want to delete this transmitter?">Delete</button>
+            hx-confirm="Are you sure you want to delete this transmitter?" class="btn btn-danger">Delete</button>
     </span>
     <div>
         "Transmits" the message to the Logs. Useful for Debugging.
-        <div><label for="active">Active:</label><input hx-put="transmitter/{{.ID}}/status" hx-trigger="click"
-                type="checkbox" name="active" {{.Status}}></div>
+        <div class="form-switch">
+            <input class="form-check-input" hx-put="transmitter/{{.ID}}/status" hx-trigger="click"
+            type="checkbox" name="active" {{.Status}}>
+            <label for="active" class="form-check-label">Active</label>
+        </div>
     </div>
 </div>

@@ -52,7 +52,7 @@ func HTMLNewForm(transmitterType string) []byte {
 		  <label>Discord Web Hook:</label>
 		  <input type="text" name="discord-url" value="">
 		</div>
-		<button class="btn">Submit</button>
+		<button class="btn btn-primary">Submit</button>
 	  </form>`
 	return []byte(test)
 }
@@ -66,7 +66,7 @@ func HTMLCreate(transmitterType string, ctx *gin.Context, storeFunction func(tra
 		  <label>Discord Web Hook:</label>
 		  <input type="text" name="discord-url" value="">
 		</div>
-	<button class="btn">Submit</button>
+	<button class="btn btn-primary">Submit</button>
   </form>`
 	return []byte(test)
 }
