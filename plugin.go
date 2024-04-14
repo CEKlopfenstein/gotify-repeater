@@ -17,9 +17,9 @@ import (
 
 var info = plugin.Info{
 	ModulePath:  "github.com/CEKlopfenstein/gotify-repeater",
-	Version:     "2024.1.x",
+	Version:     "2024.1.22",
 	Author:      "CEKlopfenstein",
-	Description: "A simple plugin that acts as a relay to discord. (Current Implementation. More planned.)",
+	Description: "A simple plugin that acts as a relay to discord. (The fun is just beginning more to come.)",
 	Name:        "Gotify Relay",
 }
 
