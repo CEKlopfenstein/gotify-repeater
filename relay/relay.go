@@ -7,7 +7,7 @@ import (
 	"github.com/CEKlopfenstein/gotify-repeater/server"
 	"github.com/CEKlopfenstein/gotify-repeater/storage"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
-	transmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters"
+	"github.com/CEKlopfenstein/gotify-repeater/transmitters"
 	"github.com/gorilla/websocket"
 )
 
@@ -16,12 +16,17 @@ type Relay struct {
 	server          server.Server
 	senderFunctions map[int]func(structs.GotifyMessageStruct)
 	nextFunctionID  int
-	transmitters    map[int]transmitter.Transmitter
+	transmitters    map[int]transmitters.Transmitter
 	storage         storage.Storage
+	userName        string
 }
 
 func (relay *Relay) SetServer(server server.Server) {
 	relay.server = server
+}
+
+func (relay *Relay) SetUserName(userName string) {
+	relay.userName = userName
 }
 
 func (relay *Relay) SetStorage(storage storage.Storage) {
@@ -38,7 +43,7 @@ func (relay *Relay) Start() {
 	var attemptLimit = 100
 	for {
 		if attemptTick >= attemptLimit {
-			log.Println("Limit Exceeded for checking HTTP(s) status")
+			log.Printf("%s Limit Exceeded for checking HTTP(s) status\n", relay.userName)
 			return
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -47,14 +52,14 @@ func (relay *Relay) Start() {
 		if check == nil {
 			break
 		}
-		log.Println("Checking HTTP(s) Status. Error:", check)
+		log.Printf("%s Checking HTTP(s) Status. Error: %s\n", relay.userName, check.Error())
 	}
 	err := relay.connectToStream()
 	if err != nil {
-		log.Println("Failed to make connection to stream. Error:", err)
+		log.Printf("%s Failed to make connection to stream. Error: %s\n", relay.userName, err.Error())
 		return
 	}
-	log.Println("Connected to stream")
+	log.Printf("Relay for %s connected to stream.\n", relay.userName)
 	relay.startSender()
 }
 
@@ -73,7 +78,7 @@ func (relay *Relay) UpdateToken(token string) error {
 
 func (relay *Relay) connectToStream() error {
 	if relay.listener != nil {
-		log.Println("Active Connection Found Closing")
+		log.Printf("%s Active Connection Found. Now closing.\n", relay.userName)
 		var err = relay.Stop()
 		if err != nil {
 			return err
@@ -88,10 +93,10 @@ func (relay *Relay) connectToStream() error {
 }
 
 func (relay *Relay) loadTransmitters() {
-	relay.transmitters = map[int]transmitter.Transmitter{}
+	relay.transmitters = map[int]transmitters.Transmitter{}
 	var transFromStore = relay.storage.GetTransmitters()
 	for key := range transFromStore {
-		relay.transmitters[key] = transmitter.RehydrateTransmitter(transFromStore[key])
+		relay.transmitters[key] = transmitters.RehydrateTransmitter(transFromStore[key])
 	}
 }
 
@@ -116,11 +121,11 @@ func (relay *Relay) startSender() {
 			var gotifyMessage = structs.GotifyMessageStruct{}
 			var err = con.ReadJSON(&gotifyMessage)
 			if relay.listener == nil {
-				log.Println("Connection Closed")
+				log.Printf("Connection Closed for %s Relay.\n", relay.userName)
 				return
 			}
 			if err != nil {
-				log.Println("Failed to Read in Gotify Message from Stream:", err)
+				log.Printf("Failed to read in Gotify Message from %s Stream: %s\n", relay.userName, err.Error())
 				relay.Stop()
 				relay.Start()
 			}
@@ -147,7 +152,7 @@ func (relay *Relay) AddTransmitFunction(sender func(structs.GotifyMessageStruct)
 	return id
 }
 
-func (relay *Relay) AddTransmitter(sender transmitter.Transmitter) int {
+func (relay *Relay) AddTransmitter(sender transmitters.Transmitter) int {
 	var id = relay.storage.GetCurrentTransmitterNextID()
 	relay.storage.AddTransmitter(sender.GetStorageValue(id))
 	relay.loadTransmitters()
@@ -156,7 +161,7 @@ func (relay *Relay) AddTransmitter(sender transmitter.Transmitter) int {
 
 func (relay *Relay) ClearTransmitters() int {
 	if relay.transmitters == nil {
-		relay.transmitters = make(map[int]transmitter.Transmitter)
+		relay.transmitters = make(map[int]transmitters.Transmitter)
 	}
 	count := len(relay.transmitters)
 
@@ -182,7 +187,7 @@ func (relay *Relay) ClearTransmitFunctions() int {
 
 func (relay *Relay) RemoveTransmitter(index int) {
 	if relay.transmitters == nil {
-		relay.transmitters = make(map[int]transmitter.Transmitter)
+		relay.transmitters = make(map[int]transmitters.Transmitter)
 	}
 	delete(relay.transmitters, index)
 	relay.saveTransmitters()
@@ -195,9 +200,9 @@ func (relay *Relay) RemoveTransmitFunction(index int) {
 	delete(relay.senderFunctions, index)
 }
 
-func (relay *Relay) GetTransmitters() map[int]transmitter.Transmitter {
+func (relay *Relay) GetTransmitters() map[int]transmitters.Transmitter {
 	if relay.transmitters == nil {
-		relay.transmitters = make(map[int]transmitter.Transmitter)
+		relay.transmitters = make(map[int]transmitters.Transmitter)
 	}
 
 	return relay.transmitters
@@ -215,7 +220,7 @@ func (relay *Relay) Stop() error {
 		relay.listener = nil
 		var err = con.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		if err != nil {
-			log.Println("Error while Closing Connection:", err)
+			log.Printf("Error while closing %s connection: %s\n", relay.userName, err.Error())
 		}
 		return err
 	}

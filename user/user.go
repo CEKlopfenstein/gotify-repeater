@@ -13,7 +13,7 @@ import (
 	"github.com/CEKlopfenstein/gotify-repeater/server"
 	"github.com/CEKlopfenstein/gotify-repeater/storage"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
-	transmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters"
+	"github.com/CEKlopfenstein/gotify-repeater/transmitters"
 	"github.com/gin-gonic/gin"
 )
 
@@ -149,7 +149,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 	})
 
 	transmitterGroup.GET("/", func(ctx *gin.Context) {
-		var transmitter transmitter.Transmitter
+		var transmitter transmitters.Transmitter
 		var id = ctx.GetInt("transID")
 
 		var transmitters = relay.GetTransmitters()
@@ -179,16 +179,16 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		tmpl, _ := template.New("").Parse(transmitterSelect)
 		var buffer bytes.Buffer
 		type internal struct {
-			Types map[string]transmitter.TransmitterType
+			Types map[string]transmitters.TransmitterType
 		}
-		var types = internal{Types: transmitter.Types}
+		var types = internal{Types: transmitters.Types}
 		tmpl.Execute(&buffer, types)
 		ctx.Data(http.StatusOK, "text/html", buffer.Bytes())
 	})
 
 	mux.PUT("/transmitter-select", func(ctx *gin.Context) {
 		var transmitterType = ctx.PostForm("transmitter")
-		var function = transmitter.Types[transmitterType].CreationPage
+		var function = transmitters.Types[transmitterType].CreationPage
 		if function != nil {
 			ctx.Data(http.StatusOK, "text/html", function(transmitterType))
 			return
@@ -199,7 +199,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 	mux.POST("/transmitter-select", func(ctx *gin.Context) {
 		var transmitterType = ctx.PostForm("transmitter")
-		var function = transmitter.Types[transmitterType].CreationPostHandler
+		var function = transmitters.Types[transmitterType].CreationPostHandler
 		if function != nil {
 			var data = function(transmitterType, ctx, c.AddTransmitter, c.GetCurrentTransmitterNextID())
 			relay.ReloadTransmitters()

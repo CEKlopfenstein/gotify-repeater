@@ -8,7 +8,7 @@
     </span>
     <div>
         <div>Default Username: {{.Username}}</div>
-        <div>Webhook URL: {{.DiscordURL}}</div>
+        <div class="text-break" style="word-wrap: break-word;">Webhook URL: {{.DiscordURL}}</div>
         <div class="form-switch">
             <input class="form-check-input" hx-put="transmitter/{{.ID}}/status" hx-trigger="click"
             type="checkbox" name="active" id="active" {{.Status}}>

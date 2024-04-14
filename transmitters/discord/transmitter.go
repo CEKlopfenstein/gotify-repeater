@@ -53,7 +53,7 @@ type transmitterCreationFormData struct {
 	HTMX template.HTML
 }
 
-func HTMLNewForm(transmitterType string) []byte {
+func NewTransmitterForm(transmitterType string) []byte {
 	templ, err := template.New("").Parse(transmitterCreationForm)
 
 	if err != nil {
@@ -71,7 +71,7 @@ func HTMLNewForm(transmitterType string) []byte {
 	return buffer.Bytes()
 }
 
-func HTMLCreate(transmitterType string, ctx *gin.Context, storeFunction func(transmitter structs.TransmitterStorage) int, id int) []byte {
+func CreateTransmitterFromForm(transmitterType string, ctx *gin.Context, storeFunction func(transmitter structs.TransmitterStorage) int, id int) []byte {
 	var transmitter = BuildDiscordTransmitter(ctx.PostForm("discord-url"), fmt.Sprintf("Transmitter %d", id), true)
 	storeFunction(transmitter.GetStorageValue(id))
 	templ, err := template.New("").Parse(transmitterCreationForm)

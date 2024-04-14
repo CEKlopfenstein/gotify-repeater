@@ -1,4 +1,4 @@
-package transmitter
+package transmitters
 
 import (
 	"github.com/CEKlopfenstein/gotify-repeater/server"
@@ -32,13 +32,13 @@ var Types = map[string]TransmitterType{
 	"log": {
 		Name:                "log",
 		Full_Name:           "Log Transmitter",
-		CreationPage:        logTransmitter.HTMLNewForm,
-		CreationPostHandler: logTransmitter.HTMLCreate},
+		CreationPage:        logTransmitter.NewTransmitterForm,
+		CreationPostHandler: logTransmitter.CreateTransmitterFromForm},
 	"discord": {
 		Name:                "discord",
 		Full_Name:           "Discord Web Hook",
-		CreationPage:        discordTransmitter.HTMLNewForm,
-		CreationPostHandler: discordTransmitter.HTMLCreate}}
+		CreationPage:        discordTransmitter.NewTransmitterForm,
+		CreationPostHandler: discordTransmitter.CreateTransmitterFromForm}}
 
 func RehydrateTransmitter(stored structs.TransmitterStorage) Transmitter {
 	if stored.TransmitterType == "discord" {
