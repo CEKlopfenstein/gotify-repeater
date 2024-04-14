@@ -22,21 +22,23 @@ type Transmitter interface {
 }
 
 type TransmitterType struct {
-	Name      string
-	Full_Name string
+	Name                string
+	Full_Name           string
+	CreationPage        (func(string) []byte)
+	CreationPostHandler (func(string, *gin.Context, func(transmitter structs.TransmitterStorage) int, int) []byte)
 }
 
-var TransmitterTypes = map[string]string{
-	"log":     "Log Transmitter",
-	"discord": "Discord Web Hook"}
-
-var TransmitterCreationPages = map[string](func(string) []byte){
-	"log":     logTransmitter.HTMLNewForm,
-	"discord": discordTransmitter.HTMLNewForm}
-
-var TransmitterCreationPostHandler = map[string](func(string, *gin.Context, func(transmitter structs.TransmitterStorage) int, int) []byte){
-	"log":     logTransmitter.HTMLCreate,
-	"discord": discordTransmitter.HTMLCreate}
+var Types = map[string]TransmitterType{
+	"log": {
+		Name:                "log",
+		Full_Name:           "Log Transmitter",
+		CreationPage:        logTransmitter.HTMLNewForm,
+		CreationPostHandler: logTransmitter.HTMLCreate},
+	"discord": {
+		Name:                "discord",
+		Full_Name:           "Discord Web Hook",
+		CreationPage:        discordTransmitter.HTMLNewForm,
+		CreationPostHandler: discordTransmitter.HTMLCreate}}
 
 func RehydrateTransmitter(stored structs.TransmitterStorage) Transmitter {
 	if stored.TransmitterType == "discord" {

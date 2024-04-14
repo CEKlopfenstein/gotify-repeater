@@ -29,28 +29,50 @@ func Build(status bool) LogTransmittor {
 	return transmitter
 }
 
+//go:embed new.html
+var transmitterCreationForm string
+
+type transmitterCreationFormData struct {
+	Type string
+	HTMX template.HTML
+}
+
 func HTMLNewForm(transmitterType string) []byte {
-	var test = `<form hx-post="transmitter-select" hx-target="this" hx-swap="outerHTML">
-		<input type="hidden" name="transmitter" value="` + transmitterType + `">
-		<div>
-		  No farther values required. Click Submit to create.
-		</div>
-		<button class="btn btn-primary">Submit</button>
-	  </form>`
-	return []byte(test)
+	templ, err := template.New("").Parse(transmitterCreationForm)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	var buffer = bytes.Buffer{}
+
+	err = templ.Execute(&buffer, transmitterCreationFormData{Type: transmitterType})
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	return buffer.Bytes()
 }
 
 func HTMLCreate(transmitterType string, ctx *gin.Context, storeFunction func(transmitter structs.TransmitterStorage) int, id int) []byte {
 	var transmitter = Build(true)
 	storeFunction(transmitter.GetStorageValue(id))
-	var test = `<form hx-post="transmitter-select" hx-target="this" hx-swap="outerHTML">
-	<input type="hidden" name="transmitter" value="` + transmitterType + `" hx-swap="beforebegin" hx-target="closest .newTransmitters" hx-get="transmitter/` + fmt.Sprint(id) + `" hx-trigger="load once">
-	<div>
-	  No farther values required. Click Submit to create.
-	</div>
-	<button class="btn btn-primary">Submit</button>
-  </form>`
-	return []byte(test)
+	templ, err := template.New("").Parse(transmitterCreationForm)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	var buffer = bytes.Buffer{}
+
+	err = templ.Execute(&buffer, transmitterCreationFormData{Type: transmitterType, HTMX: template.HTML(`<span hx-swap="beforebegin" hx-target="closest #newTransmitters" hx-get="transmitter/` + fmt.Sprint(id) + `" hx-trigger="load once"></span>`)})
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	return buffer.Bytes()
 }
 
 func (trans LogTransmittor) HTMLCard(id int) string {

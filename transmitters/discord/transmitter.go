@@ -45,30 +45,50 @@ func BuildDiscordTransmitter(discordHook string, name string, status bool) Disco
 	return transmitter
 }
 
+//go:embed new.html
+var transmitterCreationForm string
+
+type transmitterCreationFormData struct {
+	Type string
+	HTMX template.HTML
+}
+
 func HTMLNewForm(transmitterType string) []byte {
-	var test = `<form hx-post="transmitter-select" hx-target="this" hx-swap="outerHTML">
-		<input type="hidden" name="transmitter" value="` + transmitterType + `">
-		<div class="form-group">
-		  <label>Discord Web Hook:</label>
-		  <input type="text" name="discord-url" value="">
-		</div>
-		<button class="btn btn-primary">Submit</button>
-	  </form>`
-	return []byte(test)
+	templ, err := template.New("").Parse(transmitterCreationForm)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	var buffer = bytes.Buffer{}
+
+	err = templ.Execute(&buffer, transmitterCreationFormData{Type: transmitterType})
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	return buffer.Bytes()
 }
 
 func HTMLCreate(transmitterType string, ctx *gin.Context, storeFunction func(transmitter structs.TransmitterStorage) int, id int) []byte {
 	var transmitter = BuildDiscordTransmitter(ctx.PostForm("discord-url"), fmt.Sprintf("Transmitter %d", id), true)
 	storeFunction(transmitter.GetStorageValue(id))
-	var test = `<form hx-post="transmitter-select" hx-target="this" hx-swap="outerHTML">
-	<input type="hidden" name="transmitter" value="` + transmitterType + `" hx-swap="beforebegin" hx-target="closest .newTransmitters" hx-get="transmitter/` + fmt.Sprint(id) + `" hx-trigger="load once">
-	<div class="form-group">
-		  <label>Discord Web Hook:</label>
-		  <input type="text" name="discord-url" value="">
-		</div>
-	<button class="btn btn-primary">Submit</button>
-  </form>`
-	return []byte(test)
+	templ, err := template.New("").Parse(transmitterCreationForm)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	var buffer = bytes.Buffer{}
+
+	err = templ.Execute(&buffer, transmitterCreationFormData{Type: transmitterType, HTMX: template.HTML(`<span hx-swap="beforebegin" hx-target="closest #newTransmitters" hx-get="transmitter/` + fmt.Sprint(id) + `" hx-trigger="load once"></span>`)})
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	return buffer.Bytes()
 }
 
 func (trans *DiscordTransmitter) getHookInfo() (DiscordHookInfo, error) {

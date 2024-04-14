@@ -1,0 +1,8 @@
+<form hx-post="transmitter-select" hx-target="this" hx-swap="outerHTML">
+    <input type="hidden" name="transmitter" value="{{.Type}}">
+    {{.HTMX}}
+    <div>
+        No farther values required. Click Submit to create.
+    </div>
+    <button class="btn btn-primary">Submit</button>
+</form>

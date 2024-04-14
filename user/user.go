@@ -179,16 +179,16 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		tmpl, _ := template.New("").Parse(transmitterSelect)
 		var buffer bytes.Buffer
 		type internal struct {
-			Types map[string]string
+			Types map[string]transmitter.TransmitterType
 		}
-		var types = internal{Types: transmitter.TransmitterTypes}
+		var types = internal{Types: transmitter.Types}
 		tmpl.Execute(&buffer, types)
 		ctx.Data(http.StatusOK, "text/html", buffer.Bytes())
 	})
 
 	mux.PUT("/transmitter-select", func(ctx *gin.Context) {
 		var transmitterType = ctx.PostForm("transmitter")
-		var function = transmitter.TransmitterCreationPages[transmitterType]
+		var function = transmitter.Types[transmitterType].CreationPage
 		if function != nil {
 			ctx.Data(http.StatusOK, "text/html", function(transmitterType))
 			return
@@ -199,7 +199,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 	mux.POST("/transmitter-select", func(ctx *gin.Context) {
 		var transmitterType = ctx.PostForm("transmitter")
-		var function = transmitter.TransmitterCreationPostHandler[transmitterType]
+		var function = transmitter.Types[transmitterType].CreationPostHandler
 		if function != nil {
 			var data = function(transmitterType, ctx, c.AddTransmitter, c.GetCurrentTransmitterNextID())
 			relay.ReloadTransmitters()
