@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  release:
 
     runs-on: ubuntu-latest
 
@@ -13,7 +13,7 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Build
+    - name: Build All Versions
       run: make build
 
     - name: Determine Version Number
@@ -24,16 +24,13 @@ jobs:
         LAST_MAJOR=$(echo $LAST_VERSION_TAG|sed -E 's/^[^\.]+\.//g;s/\..+//g')
         MAJOR=$(($LAST_MAJOR+1))
         MINOR=$(git log --oneline HEAD...$LAST_VERSION_TAG|wc -l)
-        echo "Year: "$YEAR
-        echo "Last Version: "$LAST_VERSION_TAG
-        echo "Last Major: "$LAST_MAJOR
-        echo $YEAR.$MAJOR.$MINOR-pre
         echo "TAG_NAME=$YEAR.$MAJOR.$MINOR-pre" >> $GITHUB_OUTPUT
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.version.outputs.TAG_NAME }}
         name: Prerelease - ${{ steps.version.outputs.TAG_NAME }}
+        body: Test Prerelease
         draft: true
         make_latest: false
         token: ${{ secrets.GIT_TOKEN }}
