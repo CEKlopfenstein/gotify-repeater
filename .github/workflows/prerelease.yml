@@ -30,8 +30,7 @@ jobs:
       with:
         tag_name: ${{ steps.version.outputs.TAG_NAME }}
         name: Prerelease - ${{ steps.version.outputs.TAG_NAME }}
-        body_path: CHANGELOG.md
-        draft: true
+        body_path: PRE_CHANGELOG.md
         make_latest: false
         prerelease: true
         token: ${{ secrets.GIT_TOKEN }}

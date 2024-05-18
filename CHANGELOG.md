@@ -1,8 +1,8 @@
-## 2024.2.26
+## 2024.2.28
 ### Changes:
 - Modified method of setting version number. Now provided at compile time through ldflags
 - Built and tested basic Release Generation Pipelines for both Prereleases and Proper releases.
----
+
 ## 2024.1.22
 ### Changes:
 - Corrected Various Bugs
@@ -14,7 +14,7 @@
 - Added ability to delete "transmitters"
 - Added "Log Transmitter".
     - Currently only useful for possible debugging and as a demonstration that multiple different types of "transmitters" are possible.
----
+
 ## 2024.0.6
 An Initial Base Functionality Use/Proof of Concept. Fully functional in the simplest sense.
 
