@@ -26,7 +26,6 @@ jobs:
         MINOR=$(git log --oneline HEAD...$LAST_VERSION_TAG|wc -l)
         echo "TAG_NAME=$YEAR.$MAJOR.$MINOR-pre" >> $GITHUB_OUTPUT
         echo "CHANGE=\"$(sed -E '/---/q;/^## .*$/d' CHANGELOG.md|sed '/^---$/d')\"" >> $GITHUB_OUTPUT
-        echo ${{steps.version.outputs.CHANGE}}
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
