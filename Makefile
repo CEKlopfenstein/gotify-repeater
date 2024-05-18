@@ -3,10 +3,14 @@ GOTIFY_VERSION=master
 PLUGIN_NAME=cekwebhooks
 PLUGIN_ENTRY=plugin.go
 GO_VERSION=`cat $(BUILDDIR)/gotify-server-go-version`
+VERSION_YEAR=$(shell date +%Y)
+VERSION_MAJOR=$(shell echo $$(($$(git tag -l --sort=-creatordate|grep -v 'pre'|head -n 1|sed -E 's/^[^\.]+\.//g;s/\..+//g')+1)))
+VERSION_MINOR=$(shell git log --oneline HEAD...$$(git tag -l --sort=-creatordate|grep -v 'pre'|head -n 1)|wc -l)
+PLUGIN_VERSION=${VERSION_YEAR}.${VERSION_MAJOR}.${VERSION_MINOR}
 DOCKER_BUILD_IMAGE=gotify/build
 DOCKER_WORKDIR=/proj
 DOCKER_RUN=sudo docker run --rm -v "$$PWD/.:${DOCKER_WORKDIR}" -v "`go env GOPATH`/pkg/mod/.:/go/pkg/mod:ro" -w ${DOCKER_WORKDIR}
-DOCKER_GO_BUILD=go build -mod=readonly -a -installsuffix cgo -ldflags "$$LD_FLAGS" -buildmode=plugin 
+DOCKER_GO_BUILD=go build -mod=readonly -a -installsuffix cgo -ldflags "$$LD_FLAGS -X main.VERSION=${PLUGIN_VERSION}" -buildmode=plugin 
 TEST_SERVER_PLUGINS=./test-server/plugins
 
 all: build-linux-amd64

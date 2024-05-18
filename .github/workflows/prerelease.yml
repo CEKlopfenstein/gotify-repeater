@@ -16,7 +16,7 @@ jobs:
     - name: Build All Versions
       run: make build
 
-    - name: Determine Version Number
+    - name: Determine Version Number and Change Log
       id: version
       run: |
         YEAR=$(date +%Y)
@@ -25,14 +25,16 @@ jobs:
         MAJOR=$(($LAST_MAJOR+1))
         MINOR=$(git log --oneline HEAD...$LAST_VERSION_TAG|wc -l)
         echo "TAG_NAME=$YEAR.$MAJOR.$MINOR-pre" >> $GITHUB_OUTPUT
+        echo "CHANGE=$(sed -E '/---/q;/^## .*$/d' ../CHANGELOG.md|sed '/^---$/d')" >> $GITHUB_OUTPUT
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.version.outputs.TAG_NAME }}
         name: Prerelease - ${{ steps.version.outputs.TAG_NAME }}
-        body: Test Prerelease
+        body: ${{ steps.version.outputs.CHANGE }}
         draft: true
         make_latest: false
+        prerelease: true
         token: ${{ secrets.GIT_TOKEN }}
         files: |
           build/cekwebhooks-linux-amd64.so

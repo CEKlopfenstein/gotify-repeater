@@ -15,9 +15,11 @@ import (
 	"github.com/gotify/plugin-api"
 )
 
+var VERSION string
+
 var info = plugin.Info{
 	ModulePath:  "github.com/CEKlopfenstein/gotify-repeater",
-	Version:     "2024.1.22",
+	Version:     "BLANK",
 	Author:      "CEKlopfenstein",
 	Description: "A simple plugin that acts as a relay to discord. (The fun is just beginning more to come.)",
 	Name:        "Gotify Relay",
@@ -25,6 +27,9 @@ var info = plugin.Info{
 
 // GetGotifyPluginInfo returns gotify plugin info.
 func GetGotifyPluginInfo() plugin.Info {
+	if len(VERSION) > 0 {
+		info.Version = VERSION
+	}
 	return info
 }
 
