@@ -11,8 +11,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Build
-      run: make build
+    # - name: Build
+    #   run: make build
 
     - name: Determine Version Number
       id: version
