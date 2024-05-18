@@ -26,13 +26,13 @@ jobs:
       run: |
         echo "TAG_NAME=$(date +%Y).$((1+$(git tag -l --sort=-creatordate|grep -v 'pre'|head -n 1|sed -E 's/^[^\.]+\.//g;s/\..+//g'))).$(git log --oneline HEAD...$(git tag -l --sort=-creatordate|grep -v 'pre'|head -n 1)|wc -l)-pre" >> $GITHUB_OUTPUT
     - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.TAG_NAME }}
-          name: Prerelease - ${{ steps.version.outputs.TAG_NAME }}
-          draft: true
-          make_latest: false
-          files: |
-            build/cekwebhooks-linux-amd64.so
-            build/cekwebhooks-linux-arm-7.so
-            build/cekwebhooks-linux-arm64.so
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.version.outputs.TAG_NAME }}
+        name: Prerelease - ${{ steps.version.outputs.TAG_NAME }}
+        draft: true
+        make_latest: false
+        files: |
+          build/cekwebhooks-linux-amd64.so
+          build/cekwebhooks-linux-arm-7.so
+          build/cekwebhooks-linux-arm64.so
