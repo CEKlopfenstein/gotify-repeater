@@ -2,8 +2,8 @@ name: Release Pipeline
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "master" ]
+  # push:
+  #   branches: [ "master" ]
 
 jobs:
   release:
