@@ -13,13 +13,6 @@ jobs:
 
     - name: Build
       run: make build
-    
-    - name: 'Upload Artifact'
-      uses: actions/upload-artifact@v4
-      with:
-        name: my-artifact
-        path: build/cekwebhooks-linux-*
-        retention-days: 1
 
     - name: Determine Version Number
       id: version
@@ -29,6 +22,10 @@ jobs:
         LAST_MAJOR=$(echo $LAST_VERSION_TAG|sed -E 's/^[^\.]+\.//g;s/\..+//g')
         MAJOR=$(($LAST_MAJOR+1))
         MINOR=$(git log --oneline HEAD...$LAST_VERSION_TAG|wc -l)
+        echo "Year: "$YEAR
+        echo "Last Version: "$LAST_VERSION_TAG
+        echo "Last Major: "$LAST_MAJOR
+        echo $YEAR.$MAJOR.$MINOR-pre
         echo "TAG_NAME=$YEAR.$MAJOR.$MINOR-pre" >> $GITHUB_OUTPUT
     - name: Release
       uses: softprops/action-gh-release@v2
