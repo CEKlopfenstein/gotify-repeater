@@ -21,7 +21,8 @@ jobs:
         echo "MINOR=$(git log --oneline HEAD...$(git tag -l --sort=-creatordate|grep -v 'pre'|head -n 1)|wc -l)" >> $GITHUB_OUTPUT
         LAST_VERSION_TAG=$(git tag -l --sort=-creatordate|grep -v 'pre'|head -n 1)
         echo "Last Version: "
-        git tag -l --sort=-creatordate|grep -v 'pre'|head -n 1
+        git tag -l --sort=-creatordate
+        //|grep -v 'pre'|head -n 1
         LAST_MAJOR=$(echo $LAST_VERSION_TAG|sed -E 's/^[^\.]+\.//g;s/\..+//g')
         echo "Last Major: "$LAST_MAJOR
         MAJOR=$(($LAST_MAJOR+1))
