@@ -127,7 +127,14 @@ func (relay *Relay) startSender() {
 			if err != nil {
 				log.Printf("Failed to read in Gotify Message from %s Stream: %s\n", relay.userName, err.Error())
 				relay.Stop()
-				relay.Start()
+				go func() {
+					time.Sleep(time.Second * 1)
+					go relay.Start()
+				}()
+			}
+
+			if len(gotifyMessage.Message)+len(gotifyMessage.Title) == 0 {
+				continue
 			}
 
 			for key := range relay.senderFunctions {
