@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/CEKlopfenstein/gotify-repeater/server"
+	"github.com/CEKlopfenstein/gotify-repeater/gotify_api"
 	"github.com/CEKlopfenstein/gotify-repeater/storage"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	"github.com/CEKlopfenstein/gotify-repeater/transmitters"
@@ -12,17 +12,15 @@ import (
 )
 
 type Relay struct {
-	listener        *websocket.Conn
-	server          server.Server
-	senderFunctions map[int]func(structs.GotifyMessageStruct)
-	nextFunctionID  int
-	transmitters    map[int]transmitters.Transmitter
-	storage         storage.Storage
-	userName        string
+	listener     *websocket.Conn
+	gotifyApi    gotify_api.GotifyApi
+	transmitters map[int]transmitters.Transmitter
+	storage      storage.Storage
+	userName     string
 }
 
-func (relay *Relay) SetServer(server server.Server) {
-	relay.server = server
+func (relay *Relay) SetGotifyApi(gotifyApi gotify_api.GotifyApi) {
+	relay.gotifyApi = gotifyApi
 }
 
 func (relay *Relay) SetUserName(userName string) {
@@ -34,8 +32,8 @@ func (relay *Relay) SetStorage(storage storage.Storage) {
 	relay.loadTransmitters()
 }
 
-func (relay *Relay) GetServer() server.Server {
-	return relay.server
+func (relay *Relay) GetGotifyApi() gotify_api.GotifyApi {
+	return relay.gotifyApi
 }
 
 func (relay *Relay) Start() {
@@ -48,7 +46,7 @@ func (relay *Relay) Start() {
 		}
 		time.Sleep(100 * time.Millisecond)
 		attemptTick++
-		_, check := relay.server.GetServerInfo()
+		_, check := relay.gotifyApi.GetServerInfo()
 		if check == nil {
 			break
 		}
@@ -65,7 +63,7 @@ func (relay *Relay) Start() {
 
 func (relay *Relay) UpdateToken(token string) error {
 	relay.storage.SaveClientToken(token)
-	err := relay.server.UpdateToken(token)
+	err := relay.gotifyApi.UpdateToken(token)
 	if err != nil {
 		return err
 	}
@@ -84,7 +82,7 @@ func (relay *Relay) connectToStream() error {
 			return err
 		}
 	}
-	listener, err := relay.server.GetStream()
+	listener, err := relay.gotifyApi.GetStream()
 	if err != nil {
 		return err
 	}
@@ -137,26 +135,20 @@ func (relay *Relay) startSender() {
 				continue
 			}
 
-			for key := range relay.senderFunctions {
-				relay.senderFunctions[key](gotifyMessage)
-			}
+			var activeFlag = false
+
 			for key := range relay.transmitters {
 				if relay.transmitters[key].Active() {
-					relay.transmitters[key].Transmit(gotifyMessage, relay.server)
+					activeFlag = true
+					relay.transmitters[key].Transmit(gotifyMessage, relay.gotifyApi)
 				}
+			}
+
+			if activeFlag {
+				relay.saveTransmitters()
 			}
 		}
 	}()
-}
-
-func (relay *Relay) AddTransmitFunction(sender func(structs.GotifyMessageStruct)) int {
-	if relay.senderFunctions == nil {
-		relay.senderFunctions = make(map[int]func(structs.GotifyMessageStruct))
-	}
-	id := relay.nextFunctionID
-	relay.nextFunctionID++
-	relay.senderFunctions[id] = sender
-	return id
 }
 
 func (relay *Relay) AddTransmitter(sender transmitters.Transmitter) int {
@@ -179,32 +171,12 @@ func (relay *Relay) ClearTransmitters() int {
 	return count
 }
 
-func (relay *Relay) ClearTransmitFunctions() int {
-	if relay.senderFunctions == nil {
-		relay.senderFunctions = make(map[int]func(structs.GotifyMessageStruct))
-	}
-	count := len(relay.senderFunctions)
-
-	for key := range relay.senderFunctions {
-		delete(relay.senderFunctions, key)
-	}
-
-	return count
-}
-
 func (relay *Relay) RemoveTransmitter(index int) {
 	if relay.transmitters == nil {
 		relay.transmitters = make(map[int]transmitters.Transmitter)
 	}
 	delete(relay.transmitters, index)
 	relay.saveTransmitters()
-}
-
-func (relay *Relay) RemoveTransmitFunction(index int) {
-	if relay.senderFunctions == nil {
-		relay.senderFunctions = make(map[int]func(structs.GotifyMessageStruct))
-	}
-	delete(relay.senderFunctions, index)
 }
 
 func (relay *Relay) GetTransmitters() map[int]transmitters.Transmitter {

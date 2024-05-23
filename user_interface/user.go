@@ -1,4 +1,4 @@
-package user
+package user_interface
 
 import (
 	"bytes"
@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/CEKlopfenstein/gotify-repeater/gotify_api"
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
-	"github.com/CEKlopfenstein/gotify-repeater/server"
 	"github.com/CEKlopfenstein/gotify-repeater/storage"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	"github.com/CEKlopfenstein/gotify-repeater/transmitters"
@@ -76,7 +76,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 			}
 			ctx.Done()
 		} else {
-			var server = relay.GetServer()
+			var server = relay.GetGotifyApi()
 			var failed = server.CheckToken(clientKey)
 			if failed != nil {
 				log.Println(failed)
@@ -98,7 +98,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 	})
 
-	internalServer := server.SetupServer(hostname, "")
+	internalGotifyApi := gotify_api.SetupGotifyApi(hostname, "")
 	mux.Use(func(ctx *gin.Context) {
 		var clientKey = ctx.Request.Header.Get("X-Gotify-Key")
 		if len(clientKey) == 0 {
@@ -107,7 +107,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 			return
 		}
 
-		var failed = internalServer.UpdateToken(clientKey)
+		var failed = internalGotifyApi.UpdateToken(clientKey)
 		if failed != nil {
 			log.Println(failed)
 			ctx.Data(http.StatusUnauthorized, "application/json", []byte(failed.Error()))
@@ -135,8 +135,6 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		var transmitters = relay.GetTransmitters()
 		var id = ctx.Param("transmitterID")
 		var intId, _ = strconv.Atoi(id)
-
-		log.Println("IDs", id, intId)
 
 		var transmitter = transmitters[intId]
 		if transmitter == nil {
@@ -173,6 +171,16 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		relay.SetTransmitterStatus(id, boolStatus)
 
 		ctx.Data(http.StatusOK, "text/html", []byte(fmt.Sprintf(`<input class="form-check-input" hx-put="transmitter/%d/status" hx-trigger="click changed" type="checkbox" value="%s" name="active">`, id, status)))
+	})
+
+	transmitterGroup.GET("/count", func(ctx *gin.Context) {
+		var id = ctx.GetInt("transID")
+		var transmitCount = relay.GetTransmitters()[id].GetTransmitCount()
+		if transmitCount == -1 {
+			ctx.Data(http.StatusNotImplemented, "text/html", []byte("Selected transmitter does not implement transmition count."))
+		} else {
+			ctx.Data(http.StatusOK, "text/html", []byte(fmt.Sprint(transmitCount)))
+		}
 	})
 
 	mux.GET("/transmitter-options", func(ctx *gin.Context) {
@@ -232,13 +240,13 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 		if token == "new" {
 			currentToken := c.GetClientToken()
-			if internalServer.CheckToken(currentToken) == nil {
-				client := internalServer.FindClientFromToken(currentToken)
+			if internalGotifyApi.CheckToken(currentToken) == nil {
+				client := internalGotifyApi.FindClientFromToken(currentToken)
 				if len(client.Token) != 0 && client.Token != headerToken && client.Name == "Relay Client" {
-					internalServer.DeleteClient(client.Id)
+					internalGotifyApi.DeleteClient(client.Id)
 				}
 			}
-			newClient, err := internalServer.CreateClient("Relay Client")
+			newClient, err := internalGotifyApi.CreateClient("Relay Client")
 			if err != nil {
 				log.Println(err)
 				ctx.Redirect(303, "defaultToken")

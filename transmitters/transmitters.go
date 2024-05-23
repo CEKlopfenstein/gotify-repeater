@@ -1,7 +1,7 @@
 package transmitters
 
 import (
-	"github.com/CEKlopfenstein/gotify-repeater/server"
+	"github.com/CEKlopfenstein/gotify-repeater/gotify_api"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	discordTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/discord"
 	logTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/log"
@@ -15,10 +15,12 @@ type Transmitter interface {
 	// Dehydrates the Transmitter regardless of type into a Struct that can be safely stored for later.
 	GetStorageValue(int) structs.TransmitterStorage
 	// Transmit using this transmitter
-	Transmit(msg structs.GotifyMessageStruct, server server.Server)
+	Transmit(msg structs.GotifyMessageStruct, server gotify_api.GotifyApi)
 	// Gets a boolean to indicate if it's active
 	Active() bool
 	SetStatus(bool)
+	// Gets the number of times the transmitter has been fired. -1 Returned if not implemented
+	GetTransmitCount() int
 }
 
 type TransmitterType struct {
@@ -42,10 +44,10 @@ var Types = map[string]TransmitterType{
 
 func RehydrateTransmitter(stored structs.TransmitterStorage) Transmitter {
 	if stored.TransmitterType == "discord" {
-		trans := discordTransmitter.BuildDiscordTransmitter(stored.URL, "Default Name", stored.Active)
+		trans := discordTransmitter.Build(stored.URL, "Default Name", stored.Active, stored.TransmitCount)
 		return &trans
 	} else if stored.TransmitterType == "log" {
-		trans := logTransmitter.Build(stored.Active)
+		trans := logTransmitter.Build(stored.Active, stored.TransmitCount)
 		return &trans
 	}
 	return &logTransmitter.LogTransmittor{}

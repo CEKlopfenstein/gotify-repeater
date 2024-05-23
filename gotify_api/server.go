@@ -1,4 +1,4 @@
-package server
+package gotify_api
 
 import (
 	"bytes"
@@ -13,18 +13,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Server struct {
-	serverUrl string
-	token     string
+type GotifyApi struct {
+	serverUrl    string
+	client_token string
 }
 
-type ServerInfo struct {
+type GotifyServerInfo struct {
 	BuildDate string
 	Commit    string
 	Version   string
 }
 
-type Application struct {
+type GotifyApplication struct {
 	DefaultPriority int
 	Description     string
 	Id              int
@@ -35,11 +35,11 @@ type Application struct {
 	Token           string
 }
 
-func SetupServer(serverUrl string, token string) Server {
-	return Server{serverUrl: serverUrl, token: token}
+func SetupGotifyApi(serverUrl string, token string) GotifyApi {
+	return GotifyApi{serverUrl: serverUrl, client_token: token}
 }
 
-func (server *Server) request(path string, method string, reqBody []byte) ([]byte, error) {
+func (server *GotifyApi) request(path string, method string, reqBody []byte) ([]byte, error) {
 	var body []byte
 	versionURL, err := url.Parse(server.serverUrl)
 	if err != nil {
@@ -57,7 +57,7 @@ func (server *Server) request(path string, method string, reqBody []byte) ([]byt
 	if err != nil {
 		return body, err
 	}
-	req.Header.Set("X-Gotify-Key", server.token)
+	req.Header.Set("X-Gotify-Key", server.client_token)
 	if reader != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -80,9 +80,9 @@ func (server *Server) request(path string, method string, reqBody []byte) ([]byt
 	return body, nil
 }
 
-func (server *Server) GetServerInfo() (ServerInfo, error) {
+func (server *GotifyApi) GetServerInfo() (GotifyServerInfo, error) {
 	versionURL, err := url.Parse(server.serverUrl)
-	var serverInfo = ServerInfo{}
+	var serverInfo = GotifyServerInfo{}
 	if err != nil {
 		return serverInfo, err
 	}
@@ -111,7 +111,7 @@ func (server *Server) GetServerInfo() (ServerInfo, error) {
 
 }
 
-func (server *Server) GetStream() (*websocket.Conn, error) {
+func (server *GotifyApi) GetStream() (*websocket.Conn, error) {
 	var streamUrl, err = url.Parse(server.serverUrl)
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func (server *Server) GetStream() (*websocket.Conn, error) {
 
 	streamUrl.Path = "/stream"
 	var tokenQuery = streamUrl.Query()
-	tokenQuery.Add("token", server.token)
+	tokenQuery.Add("token", server.client_token)
 	streamUrl.RawQuery = tokenQuery.Encode()
 
 	switch streamUrl.Scheme {
@@ -138,8 +138,8 @@ func (server *Server) GetStream() (*websocket.Conn, error) {
 	return listener, nil
 }
 
-func (server *Server) GetApplications() ([]Application, error) {
-	applications := []Application{}
+func (server *GotifyApi) GetApplications() ([]GotifyApplication, error) {
+	applications := []GotifyApplication{}
 	body, err := server.request("/application", http.MethodGet, nil)
 	if err != nil {
 		return applications, err
@@ -152,8 +152,8 @@ func (server *Server) GetApplications() ([]Application, error) {
 	return applications, nil
 }
 
-func (server *Server) GetApplication(appId int) (Application, error) {
-	application := Application{}
+func (server *GotifyApi) GetApplication(appId int) (GotifyApplication, error) {
+	application := GotifyApplication{}
 
 	applications, err := server.GetApplications()
 	if err != nil {
@@ -169,7 +169,7 @@ func (server *Server) GetApplication(appId int) (Application, error) {
 	return application, fmt.Errorf("application with id of %d not found", appId)
 }
 
-func (server *Server) CheckToken(token string) error {
+func (server *GotifyApi) CheckToken(token string) error {
 	currentUserURL, err := url.Parse(server.serverUrl)
 	if err != nil {
 		return err
@@ -195,32 +195,32 @@ func (server *Server) CheckToken(token string) error {
 	return nil
 }
 
-func (server *Server) UpdateToken(token string) error {
+func (server *GotifyApi) UpdateToken(token string) error {
 	err := server.CheckToken(token)
 	if err != nil {
 		return err
 	}
-	server.token = token
+	server.client_token = token
 	return nil
 }
 
-type GotifyClient struct {
+type GotifyClientInfo struct {
 	Id    int    `json:"id"`
 	Name  string `json:"name"`
 	Token string `json:"token"`
 }
 
-func (server *Server) FindClientFromToken(token string) GotifyClient {
+func (server *GotifyApi) FindClientFromToken(token string) GotifyClientInfo {
 	body, err := server.request("/client", http.MethodGet, nil)
 	if err != nil {
 		log.Println(err)
-		return GotifyClient{}
+		return GotifyClientInfo{}
 	}
-	var clients []GotifyClient
+	var clients []GotifyClientInfo
 	err = json.Unmarshal(body, &clients)
 	if err != nil {
 		log.Println(err)
-		return GotifyClient{}
+		return GotifyClientInfo{}
 	}
 
 	for i := 0; i < len(clients); i++ {
@@ -229,10 +229,10 @@ func (server *Server) FindClientFromToken(token string) GotifyClient {
 		}
 	}
 
-	return GotifyClient{}
+	return GotifyClientInfo{}
 }
 
-func (server *Server) DeleteClient(id int) {
+func (server *GotifyApi) DeleteClient(id int) {
 	_, err := server.request(fmt.Sprintf("/client/%d", id), http.MethodDelete, nil)
 	if err != nil {
 		log.Println(err)
@@ -240,22 +240,22 @@ func (server *Server) DeleteClient(id int) {
 	}
 }
 
-func (server *Server) CreateClient(name string) (GotifyClient, error) {
+func (server *GotifyApi) CreateClient(name string) (GotifyClientInfo, error) {
 	type newClient struct {
 		Name string `json:"name"`
 	}
 	reqBody, err := json.Marshal(newClient{Name: name})
 
 	if err != nil {
-		return GotifyClient{}, err
+		return GotifyClientInfo{}, err
 	}
 
 	body, err := server.request("/client", http.MethodPost, reqBody)
 	if err != nil {
-		return GotifyClient{}, err
+		return GotifyClientInfo{}, err
 	}
 
-	var client GotifyClient
+	var client GotifyClientInfo
 	err = json.Unmarshal(body, &client)
 	if err != nil {
 		return client, err

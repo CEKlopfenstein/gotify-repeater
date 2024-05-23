@@ -23,4 +23,5 @@ type TransmitterStorage struct {
 	Active          bool
 	TransmitterType string
 	URL             string
+	TransmitCount   int
 }

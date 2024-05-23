@@ -7,8 +7,23 @@
             hx-confirm="Are you sure you want to delete this transmitter?" class="btn btn-danger">Delete</button>
     </span>
     <div>
+        <div>Transmit Count: <span hx-get="transmitter/{{.ID}}/count" hx-swap="innerHTML" hx-trigger="load, every 5s"></span></div>
         <div>Default Username: {{.Username}}</div>
-        <div class="text-break" style="word-wrap: break-word;">Webhook URL: {{.DiscordURL}}</div>
+        <style>
+            .hide-discord-webhook {
+                background-color: black;
+            }
+            .hide-discord-webhook > * {
+                opacity: 0;
+            }
+            .hide-discord-webhook:hover {
+                background-color: transparent;
+            }
+            .hide-discord-webhook:hover > * {
+                opacity: 1;
+            }
+        </style>
+        <div class="text-break">Webhook URL: <span class="hide-discord-webhook"><span style="word-wrap: break-word">{{.DiscordURL}}</span></span></div>
         <div class="form-switch">
             <input class="form-check-input" hx-put="transmitter/{{.ID}}/status" hx-trigger="click"
             type="checkbox" name="active" id="active" {{.Status}}>

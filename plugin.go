@@ -6,16 +6,19 @@ import (
 	"strconv"
 
 	"github.com/CEKlopfenstein/gotify-repeater/config"
+	"github.com/CEKlopfenstein/gotify-repeater/gotify_api"
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
-	"github.com/CEKlopfenstein/gotify-repeater/server"
 	"github.com/CEKlopfenstein/gotify-repeater/storage"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
-	"github.com/CEKlopfenstein/gotify-repeater/user"
+	"github.com/CEKlopfenstein/gotify-repeater/user_interface"
 	"github.com/gin-gonic/gin"
 	"github.com/gotify/plugin-api"
 )
 
 var VERSION string
+
+//go:embed MAJOR_CHANGELOG.md
+var changesSinceLastFullRelease string
 
 var info = plugin.Info{
 	ModulePath:  "github.com/CEKlopfenstein/gotify-repeater",
@@ -47,11 +50,10 @@ type GotifyRelayPlugin struct {
 // Enable enables the plugin.
 func (c *GotifyRelayPlugin) Enable() error {
 	c.enabled = true
-	var server = server.SetupServer(c.hostName, c.storage.GetClientToken())
+	var server = gotify_api.SetupGotifyApi(c.hostName, c.storage.GetClientToken())
 	c.relay.SetUserName(c.userCtx.Name)
-	c.relay.SetServer(server)
+	c.relay.SetGotifyApi(server)
 	c.relay.SetStorage(c.storage)
-	c.relay.ClearTransmitFunctions()
 	go c.relay.Start()
 	return nil
 }
@@ -77,12 +79,14 @@ func (c *GotifyRelayPlugin) GetDisplay(location *url.URL) string {
 		toReturn += " is only accessible if plugin is enabled.\n\n"
 	}
 
+	toReturn += "\n\n## Change Log\n\nSince last full release.\n\n" + changesSinceLastFullRelease
+
 	return toReturn
 }
 
 func (c *GotifyRelayPlugin) RegisterWebhook(basePath string, mux *gin.RouterGroup) {
 	c.basePath = basePath
-	user.BuildInterface(basePath, mux, &c.relay, c.config, c.storage, c.hostName)
+	user_interface.BuildInterface(basePath, mux, &c.relay, c.config, c.storage, c.hostName)
 }
 
 func (c *GotifyRelayPlugin) SetStorageHandler(h plugin.StorageHandler) {

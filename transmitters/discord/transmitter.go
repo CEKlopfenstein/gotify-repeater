@@ -10,15 +10,16 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/CEKlopfenstein/gotify-repeater/server"
+	"github.com/CEKlopfenstein/gotify-repeater/gotify_api"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	"github.com/gin-gonic/gin"
 )
 
 type DiscordTransmitter struct {
-	username string
-	discord  string
-	status   bool
+	username      string
+	discord       string
+	status        bool
+	transmitCount int
 }
 
 type DiscordWebhookPayload struct {
@@ -30,7 +31,7 @@ type DiscordHookInfo struct {
 	Name string
 }
 
-func BuildDiscordTransmitter(discordHook string, name string, status bool) DiscordTransmitter {
+func Build(discordHook string, name string, status bool, count int) DiscordTransmitter {
 	var transmitter = DiscordTransmitter{discord: discordHook}
 
 	var hookInfo, err = transmitter.getHookInfo()
@@ -41,6 +42,8 @@ func BuildDiscordTransmitter(discordHook string, name string, status bool) Disco
 	}
 
 	transmitter.SetStatus(status)
+
+	transmitter.transmitCount = count
 
 	return transmitter
 }
@@ -72,7 +75,7 @@ func NewTransmitterForm(transmitterType string) []byte {
 }
 
 func CreateTransmitterFromForm(transmitterType string, ctx *gin.Context, storeFunction func(transmitter structs.TransmitterStorage) int, id int) []byte {
-	var transmitter = BuildDiscordTransmitter(ctx.PostForm("discord-url"), fmt.Sprintf("Transmitter %d", id), true)
+	var transmitter = Build(ctx.PostForm("discord-url"), fmt.Sprintf("Transmitter %d", id), true, 0)
 	storeFunction(transmitter.GetStorageValue(id))
 	templ, err := template.New("").Parse(transmitterCreationForm)
 
@@ -111,7 +114,7 @@ func (trans *DiscordTransmitter) getHookInfo() (DiscordHookInfo, error) {
 	return hookInfo, nil
 }
 
-func (trans DiscordTransmitter) Transmit(msg structs.GotifyMessageStruct, server server.Server) {
+func (trans *DiscordTransmitter) Transmit(msg structs.GotifyMessageStruct, server gotify_api.GotifyApi) {
 	username := trans.username
 	application, err := server.GetApplication(msg.Appid)
 	if err == nil {
@@ -131,6 +134,8 @@ func (trans DiscordTransmitter) Transmit(msg structs.GotifyMessageStruct, server
 		return
 	} else if resp.StatusCode != http.StatusNoContent {
 		log.Println("Discord Webhook returned response other than 204. Response:", resp.Status)
+	} else {
+		trans.transmitCount++
 	}
 }
 
@@ -169,7 +174,7 @@ func (trans DiscordTransmitter) HTMLCard(id int) string {
 }
 
 func (trans DiscordTransmitter) GetStorageValue(id int) structs.TransmitterStorage {
-	return structs.TransmitterStorage{Id: id, URL: trans.discord, TransmitterType: "discord", Active: trans.Active()}
+	return structs.TransmitterStorage{Id: id, URL: trans.discord, TransmitterType: "discord", Active: trans.Active(), TransmitCount: trans.GetTransmitCount()}
 }
 
 func (trans DiscordTransmitter) Active() bool {
@@ -178,4 +183,8 @@ func (trans DiscordTransmitter) Active() bool {
 
 func (trans *DiscordTransmitter) SetStatus(active bool) {
 	trans.status = active
+}
+
+func (trans *DiscordTransmitter) GetTransmitCount() int {
+	return trans.transmitCount
 }

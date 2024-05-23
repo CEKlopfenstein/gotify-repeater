@@ -8,6 +8,7 @@
     </span>
     <div>
         "Transmits" the message to the Logs. Useful for Debugging.
+        <div>Transmit Count: <span hx-get="transmitter/{{.ID}}/count" hx-swap="innerHTML" hx-trigger="load, every 5s"></span></div>
         <div class="form-switch">
             <input class="form-check-input" hx-put="transmitter/{{.ID}}/status" hx-trigger="click"
             type="checkbox" name="active" {{.Status}}>
