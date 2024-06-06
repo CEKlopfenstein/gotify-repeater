@@ -12,13 +12,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var globalLogger *log.Logger
+
+func SetGlobalLogger(logger *log.Logger) {
+	globalLogger = logger
+}
+
 type LogTransmittor struct {
 	status        bool
 	transmitCount int
 }
 
 func (trans *LogTransmittor) Transmit(msg structs.GotifyMessageStruct, server gotify_api.GotifyApi) {
-	log.Println("LogTransmittor, MSG:", msg.Message, "Priority:", msg.Priority, "Raw:", msg)
+	globalLogger.Println("LogTransmittor, MSG:", msg.Message, "Priority:", msg.Priority, "Raw:", msg)
 	trans.transmitCount++
 }
 
@@ -44,7 +50,7 @@ func NewTransmitterForm(transmitterType string) []byte {
 	templ, err := template.New("").Parse(transmitterCreationForm)
 
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 	}
 
 	var buffer = bytes.Buffer{}
@@ -52,7 +58,7 @@ func NewTransmitterForm(transmitterType string) []byte {
 	err = templ.Execute(&buffer, transmitterCreationFormData{Type: transmitterType})
 
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 	}
 
 	return buffer.Bytes()
@@ -64,7 +70,7 @@ func CreateTransmitterFromForm(transmitterType string, ctx *gin.Context, storeFu
 	templ, err := template.New("").Parse(transmitterCreationForm)
 
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 	}
 
 	var buffer = bytes.Buffer{}
@@ -72,7 +78,7 @@ func CreateTransmitterFromForm(transmitterType string, ctx *gin.Context, storeFu
 	err = templ.Execute(&buffer, transmitterCreationFormData{Type: transmitterType, HTMX: template.HTML(`<span hx-swap="beforebegin" hx-target="closest #newTransmitters" hx-get="transmitter/` + fmt.Sprint(id) + `" hx-trigger="load once"></span>`)})
 
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 	}
 
 	return buffer.Bytes()
@@ -81,7 +87,7 @@ func CreateTransmitterFromForm(transmitterType string, ctx *gin.Context, storeFu
 func (trans LogTransmittor) HTMLCard(id int) string {
 	template, err := template.New("").Parse(card)
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 		return err.Error()
 	}
 	writer := bytes.Buffer{}
@@ -98,7 +104,7 @@ func (trans LogTransmittor) HTMLCard(id int) string {
 
 	err = template.Execute(&writer, data)
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 		return err.Error()
 	}
 

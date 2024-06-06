@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
+	"io"
+	"log"
 	"net/url"
+	"os"
 	"strconv"
 
 	"github.com/CEKlopfenstein/gotify-repeater/config"
@@ -10,6 +14,7 @@ import (
 	"github.com/CEKlopfenstein/gotify-repeater/relay"
 	"github.com/CEKlopfenstein/gotify-repeater/storage"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
+	"github.com/CEKlopfenstein/gotify-repeater/transmitters"
 	"github.com/CEKlopfenstein/gotify-repeater/user_interface"
 	"github.com/gin-gonic/gin"
 	"github.com/gotify/plugin-api"
@@ -38,23 +43,27 @@ func GetGotifyPluginInfo() plugin.Info {
 
 // GotifyRelayPlugin is the gotify plugin instance.
 type GotifyRelayPlugin struct {
-	userCtx  plugin.UserContext
-	config   *structs.Config
-	relay    relay.Relay
-	basePath string
-	hostName string
-	storage  storage.Storage
-	enabled  bool
+	userCtx   plugin.UserContext
+	config    *structs.Config
+	relay     relay.Relay
+	basePath  string
+	hostName  string
+	storage   storage.Storage
+	enabled   bool
+	logger    *log.Logger
+	logBuffer *bytes.Buffer
 }
 
 // Enable enables the plugin.
 func (c *GotifyRelayPlugin) Enable() error {
 	c.enabled = true
-	var server = gotify_api.SetupGotifyApi(c.hostName, c.storage.GetClientToken())
+	var server = gotify_api.SetupGotifyApiExternalLog(c.hostName, c.storage.GetClientToken(), c.logger)
 	c.relay.SetUserName(c.userCtx.Name)
 	c.relay.SetGotifyApi(server)
+	c.relay.SetLogger(c.logger)
 	c.relay.SetStorage(c.storage)
 	go c.relay.Start()
+	c.logger.Printf("Plugin Enabled for %s\n", c.userCtx.Name)
 	return nil
 }
 
@@ -62,6 +71,7 @@ func (c *GotifyRelayPlugin) Enable() error {
 func (c *GotifyRelayPlugin) Disable() error {
 	c.enabled = false
 	c.relay.Stop()
+	c.logger.Printf("Plugin Disabled for %s\n", c.userCtx.Name)
 	return nil
 }
 
@@ -86,7 +96,7 @@ func (c *GotifyRelayPlugin) GetDisplay(location *url.URL) string {
 
 func (c *GotifyRelayPlugin) RegisterWebhook(basePath string, mux *gin.RouterGroup) {
 	c.basePath = basePath
-	user_interface.BuildInterface(basePath, mux, &c.relay, c.config, c.storage, c.hostName)
+	user_interface.BuildInterface(basePath, mux, &c.relay, c.config, c.storage, c.hostName, c.logger, c.logBuffer)
 }
 
 func (c *GotifyRelayPlugin) SetStorageHandler(h plugin.StorageHandler) {
@@ -116,7 +126,17 @@ func NewGotifyPluginInstance(ctx plugin.UserContext) plugin.Plugin {
 		host += ":" + strconv.Itoa(conf.Server.Port)
 	}
 
-	return &GotifyRelayPlugin{userCtx: ctx, hostName: host}
+	logBuffer := &(bytes.Buffer{})
+	logger := log.New(io.MultiWriter(os.Stdout, logBuffer), "Gotify Relay: ", log.LstdFlags|log.Lmsgprefix)
+	logger.Printf("Logger Successfully Created for %s", ctx.Name)
+
+	toReturn := &GotifyRelayPlugin{userCtx: ctx, hostName: host, logger: logger, logBuffer: logBuffer}
+	toReturn.storage.Logger = logger
+	for tType := range transmitters.Types {
+		transmitters.Types[tType].SetGlobalLogger(logger)
+	}
+
+	return toReturn
 }
 
 func main() {

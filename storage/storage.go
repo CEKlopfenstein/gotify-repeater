@@ -10,6 +10,7 @@ import (
 
 type Storage struct {
 	StorageHandler plugin.StorageHandler
+	Logger         *log.Logger
 	innerStore     innerStorageStruct
 }
 
@@ -36,7 +37,7 @@ func (storage *Storage) save() {
 func (storage *Storage) load() {
 	storageBytes, err := storage.StorageHandler.Load()
 	if err != nil {
-		log.Println(err)
+		storage.Logger.Println(err)
 		return
 	}
 

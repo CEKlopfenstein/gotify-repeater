@@ -51,6 +51,12 @@ func Build(discordHook string, name string, status bool, count int) DiscordTrans
 //go:embed new.html
 var transmitterCreationForm string
 
+var globalLogger *log.Logger
+
+func SetGlobalLogger(logger *log.Logger) {
+	globalLogger = logger
+}
+
 type transmitterCreationFormData struct {
 	Type string
 	HTMX template.HTML
@@ -60,7 +66,7 @@ func NewTransmitterForm(transmitterType string) []byte {
 	templ, err := template.New("").Parse(transmitterCreationForm)
 
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 	}
 
 	var buffer = bytes.Buffer{}
@@ -68,7 +74,7 @@ func NewTransmitterForm(transmitterType string) []byte {
 	err = templ.Execute(&buffer, transmitterCreationFormData{Type: transmitterType})
 
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 	}
 
 	return buffer.Bytes()
@@ -80,7 +86,7 @@ func CreateTransmitterFromForm(transmitterType string, ctx *gin.Context, storeFu
 	templ, err := template.New("").Parse(transmitterCreationForm)
 
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 	}
 
 	var buffer = bytes.Buffer{}
@@ -88,7 +94,7 @@ func CreateTransmitterFromForm(transmitterType string, ctx *gin.Context, storeFu
 	err = templ.Execute(&buffer, transmitterCreationFormData{Type: transmitterType, HTMX: template.HTML(`<span hx-swap="beforebegin" hx-target="closest #newTransmitters" hx-get="transmitter/` + fmt.Sprint(id) + `" hx-trigger="load once"></span>`)})
 
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 	}
 
 	return buffer.Bytes()
@@ -125,15 +131,15 @@ func (trans *DiscordTransmitter) Transmit(msg structs.GotifyMessageStruct, serve
 
 	discordBytePayload, err := json.Marshal(&discordPayload)
 	if err != nil {
-		log.Println("Failed To Build Discord Webhook Payload:", err.Error())
+		globalLogger.Println("Failed To Build Discord Webhook Payload:", err.Error())
 		return
 	}
 	resp, err := http.Post(trans.discord, "application/json", bytes.NewReader(discordBytePayload))
 	if err != nil {
-		log.Println("Failed to Send Discord Webhook:", err.Error())
+		globalLogger.Println("Failed to Send Discord Webhook:", err.Error())
 		return
 	} else if resp.StatusCode != http.StatusNoContent {
-		log.Println("Discord Webhook returned response other than 204. Response:", resp.Status)
+		globalLogger.Println("Discord Webhook returned response other than 204. Response:", resp.Status)
 	} else {
 		trans.transmitCount++
 	}
@@ -146,7 +152,7 @@ func (trans DiscordTransmitter) HTMLCard(id int) string {
 
 	template, err := template.New("").Parse(card)
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 		return err.Error()
 	}
 	writer := bytes.Buffer{}
@@ -166,7 +172,7 @@ func (trans DiscordTransmitter) HTMLCard(id int) string {
 
 	err = template.Execute(&writer, data)
 	if err != nil {
-		log.Println(err)
+		globalLogger.Println(err)
 		return err.Error()
 	}
 

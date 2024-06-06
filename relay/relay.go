@@ -17,6 +17,7 @@ type Relay struct {
 	transmitters map[int]transmitters.Transmitter
 	storage      storage.Storage
 	userName     string
+	logger       *log.Logger
 }
 
 func (relay *Relay) SetGotifyApi(gotifyApi gotify_api.GotifyApi) {
@@ -32,6 +33,9 @@ func (relay *Relay) SetStorage(storage storage.Storage) {
 	relay.loadTransmitters()
 }
 
+func (relay *Relay) SetLogger(logger *log.Logger) {
+	relay.logger = logger
+}
 func (relay *Relay) GetGotifyApi() gotify_api.GotifyApi {
 	return relay.gotifyApi
 }
@@ -41,7 +45,7 @@ func (relay *Relay) Start() {
 	var attemptLimit = 100
 	for {
 		if attemptTick >= attemptLimit {
-			log.Printf("%s Limit Exceeded for checking HTTP(s) status\n", relay.userName)
+			relay.logger.Printf("%s Limit Exceeded for checking HTTP(s) status\n", relay.userName)
 			return
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -50,14 +54,14 @@ func (relay *Relay) Start() {
 		if check == nil {
 			break
 		}
-		log.Printf("%s Checking HTTP(s) Status. Error: %s\n", relay.userName, check.Error())
+		relay.logger.Printf("%s Checking HTTP(s) Status. Error: %s\n", relay.userName, check.Error())
 	}
 	err := relay.connectToStream()
 	if err != nil {
-		log.Printf("%s Failed to make connection to stream. Error: %s\n", relay.userName, err.Error())
+		relay.logger.Printf("%s Failed to make connection to stream. Error: %s\n", relay.userName, err.Error())
 		return
 	}
-	log.Printf("Relay for %s connected to stream.\n", relay.userName)
+	relay.logger.Printf("Relay for %s connected to stream.\n", relay.userName)
 	relay.startSender()
 }
 
@@ -76,7 +80,7 @@ func (relay *Relay) UpdateToken(token string) error {
 
 func (relay *Relay) connectToStream() error {
 	if relay.listener != nil {
-		log.Printf("%s Active Connection Found. Now closing.\n", relay.userName)
+		relay.logger.Printf("%s Active Connection Found. Now closing.\n", relay.userName)
 		var err = relay.Stop()
 		if err != nil {
 			return err
@@ -93,6 +97,7 @@ func (relay *Relay) connectToStream() error {
 func (relay *Relay) loadTransmitters() {
 	relay.transmitters = map[int]transmitters.Transmitter{}
 	var transFromStore = relay.storage.GetTransmitters()
+
 	for key := range transFromStore {
 		relay.transmitters[key] = transmitters.RehydrateTransmitter(transFromStore[key])
 	}
@@ -119,11 +124,11 @@ func (relay *Relay) startSender() {
 			var gotifyMessage = structs.GotifyMessageStruct{}
 			var err = con.ReadJSON(&gotifyMessage)
 			if relay.listener == nil {
-				log.Printf("Connection Closed for %s Relay.\n", relay.userName)
+				relay.logger.Printf("Connection Closed for %s Relay.\n", relay.userName)
 				return
 			}
 			if err != nil {
-				log.Printf("Failed to read in Gotify Message from %s Stream: %s\n", relay.userName, err.Error())
+				relay.logger.Printf("Failed to read in Gotify Message from %s Stream: %s\n", relay.userName, err.Error())
 				relay.Stop()
 				go func() {
 					time.Sleep(time.Second * 1)
@@ -199,7 +204,7 @@ func (relay *Relay) Stop() error {
 		relay.listener = nil
 		var err = con.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		if err != nil {
-			log.Printf("Error while closing %s connection: %s\n", relay.userName, err.Error())
+			relay.logger.Printf("Error while closing %s connection: %s\n", relay.userName, err.Error())
 		}
 		return err
 	}

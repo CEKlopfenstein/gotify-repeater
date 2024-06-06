@@ -16,6 +16,7 @@ import (
 type GotifyApi struct {
 	serverUrl    string
 	client_token string
+	logger       *log.Logger
 }
 
 type GotifyServerInfo struct {
@@ -36,7 +37,11 @@ type GotifyApplication struct {
 }
 
 func SetupGotifyApi(serverUrl string, token string) GotifyApi {
-	return GotifyApi{serverUrl: serverUrl, client_token: token}
+	return GotifyApi{serverUrl: serverUrl, client_token: token, logger: log.Default()}
+}
+
+func SetupGotifyApiExternalLog(serverUrl string, token string, logger *log.Logger) GotifyApi {
+	return GotifyApi{serverUrl: serverUrl, client_token: token, logger: logger}
 }
 
 func (server *GotifyApi) request(path string, method string, reqBody []byte) ([]byte, error) {
@@ -213,13 +218,13 @@ type GotifyClientInfo struct {
 func (server *GotifyApi) FindClientFromToken(token string) GotifyClientInfo {
 	body, err := server.request("/client", http.MethodGet, nil)
 	if err != nil {
-		log.Println(err)
+		server.logger.Println(err)
 		return GotifyClientInfo{}
 	}
 	var clients []GotifyClientInfo
 	err = json.Unmarshal(body, &clients)
 	if err != nil {
-		log.Println(err)
+		server.logger.Println(err)
 		return GotifyClientInfo{}
 	}
 
@@ -235,7 +240,7 @@ func (server *GotifyApi) FindClientFromToken(token string) GotifyClientInfo {
 func (server *GotifyApi) DeleteClient(id int) {
 	_, err := server.request(fmt.Sprintf("/client/%d", id), http.MethodDelete, nil)
 	if err != nil {
-		log.Println(err)
+		server.logger.Println(err)
 		return
 	}
 }

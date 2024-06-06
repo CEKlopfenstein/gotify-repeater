@@ -1,6 +1,8 @@
 package transmitters
 
 import (
+	"log"
+
 	"github.com/CEKlopfenstein/gotify-repeater/gotify_api"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	discordTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/discord"
@@ -28,6 +30,7 @@ type TransmitterType struct {
 	Full_Name           string
 	CreationPage        (func(string) []byte)
 	CreationPostHandler (func(string, *gin.Context, func(transmitter structs.TransmitterStorage) int, int) []byte)
+	SetGlobalLogger     (func(*log.Logger))
 }
 
 var Types = map[string]TransmitterType{
@@ -35,12 +38,14 @@ var Types = map[string]TransmitterType{
 		Name:                "log",
 		Full_Name:           "Log Transmitter",
 		CreationPage:        logTransmitter.NewTransmitterForm,
-		CreationPostHandler: logTransmitter.CreateTransmitterFromForm},
+		CreationPostHandler: logTransmitter.CreateTransmitterFromForm,
+		SetGlobalLogger:     logTransmitter.SetGlobalLogger},
 	"discord": {
 		Name:                "discord",
 		Full_Name:           "Discord Web Hook",
 		CreationPage:        discordTransmitter.NewTransmitterForm,
-		CreationPostHandler: discordTransmitter.CreateTransmitterFromForm}}
+		CreationPostHandler: discordTransmitter.CreateTransmitterFromForm,
+		SetGlobalLogger:     discordTransmitter.SetGlobalLogger}}
 
 func RehydrateTransmitter(stored structs.TransmitterStorage) Transmitter {
 	if stored.TransmitterType == "discord" {

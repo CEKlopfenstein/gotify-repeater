@@ -47,7 +47,7 @@ type card struct {
 	Body  template.HTML
 }
 
-func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, hookConfig *structs.Config, c storage.Storage, hostname string) {
+func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, hookConfig *structs.Config, c storage.Storage, hostname string, logger *log.Logger, logBuffer *bytes.Buffer) {
 	var cards = []card{}
 	var pageData = userPage{HtmxBasePath: "htmx.min.js", Cards: cards, MainJSPath: "main.js", Bootstrap: "bootstrap.min.css"}
 
@@ -66,33 +66,33 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		if len(clientKey) == 0 {
 			tmpl, err := template.New("").Parse(wrapper)
 			if err != nil {
-				log.Println(err)
+				logger.Println(err)
 				ctx.Done()
 				return
 			}
 			err = tmpl.Execute(ctx.Writer, pageData)
 			if err != nil {
-				log.Println(err)
+				logger.Println(err)
 			}
 			ctx.Done()
 		} else {
 			var server = relay.GetGotifyApi()
 			var failed = server.CheckToken(clientKey)
 			if failed != nil {
-				log.Println(failed)
+				logger.Println(failed)
 				ctx.Data(http.StatusOK, "text/html", []byte("<h2>Unauthorized token. Redirecting to main page.</h2><script>window.location = '/';</script>"))
 				ctx.Done()
 				return
 			}
 			tmpl, err := template.New("").Parse(main)
 			if err != nil {
-				log.Println(err)
+				logger.Println(err)
 				ctx.Done()
 				return
 			}
 			err = tmpl.Execute(ctx.Writer, pageData)
 			if err != nil {
-				log.Println(err)
+				logger.Println(err)
 			}
 		}
 
@@ -109,7 +109,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 		var failed = internalGotifyApi.UpdateToken(clientKey)
 		if failed != nil {
-			log.Println(failed)
+			logger.Println(failed)
 			ctx.Data(http.StatusUnauthorized, "application/json", []byte(failed.Error()))
 			ctx.Done()
 			return
@@ -248,7 +248,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 			}
 			newClient, err := internalGotifyApi.CreateClient("Relay Client")
 			if err != nil {
-				log.Println(err)
+				logger.Println(err)
 				ctx.Redirect(303, "defaultToken")
 				return
 			}
