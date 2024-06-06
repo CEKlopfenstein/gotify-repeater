@@ -118,6 +118,10 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 		ctx.Next()
 	})
 
+	mux.GET("/logs", func(ctx *gin.Context) {
+		ctx.Data(http.StatusOK, "text/html", logBuffer.Bytes())
+	})
+
 	mux.GET("/getLoginToken", func(ctx *gin.Context) {
 		ctx.Data(http.StatusOK, "text/html", []byte(ctx.GetString("token")))
 	})

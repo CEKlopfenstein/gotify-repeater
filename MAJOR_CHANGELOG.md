@@ -10,3 +10,5 @@
 - Discord Webhooks how hidden unless hovered over.
 - Added ability to have transmit counts.
     - Updated within the GUI once every 5 seconds currently.
+- Logs for the plugin spesifically are now visible within the UI.
+    - Refreshes every 5 seconds
