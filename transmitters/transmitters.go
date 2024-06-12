@@ -7,6 +7,7 @@ import (
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	discordTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/discord"
 	logTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/log"
+	pushbulletTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/pushbullet"
 	"github.com/gin-gonic/gin"
 )
 
@@ -45,14 +46,24 @@ var Types = map[string]TransmitterType{
 		Full_Name:           "Discord Web Hook",
 		CreationPage:        discordTransmitter.NewTransmitterForm,
 		CreationPostHandler: discordTransmitter.CreateTransmitterFromForm,
-		SetGlobalLogger:     discordTransmitter.SetGlobalLogger}}
+		SetGlobalLogger:     discordTransmitter.SetGlobalLogger},
+	"pushbullet": {
+		Name:                "pushbullet",
+		Full_Name:           "Pushbullet",
+		CreationPage:        pushbulletTransmitter.NewTransmitterForm,
+		CreationPostHandler: pushbulletTransmitter.CreateTransmitterFromForm,
+		SetGlobalLogger:     pushbulletTransmitter.SetGlobalLogger,
+	}}
 
 func RehydrateTransmitter(stored structs.TransmitterStorage) Transmitter {
 	if stored.TransmitterType == "discord" {
-		trans := discordTransmitter.Build(stored.URL, "Default Name", stored.Active, stored.TransmitCount)
+		trans := discordTransmitter.Build(stored.URLorTOKEN, "Default Name", stored.Active, stored.TransmitCount)
 		return &trans
 	} else if stored.TransmitterType == "log" {
 		trans := logTransmitter.Build(stored.Active, stored.TransmitCount)
+		return &trans
+	} else if stored.TransmitterType == "pushbullet" {
+		trans := pushbulletTransmitter.Build(stored.URLorTOKEN, "Default Name", stored.Active, stored.TransmitCount)
 		return &trans
 	}
 	return &logTransmitter.LogTransmittor{}

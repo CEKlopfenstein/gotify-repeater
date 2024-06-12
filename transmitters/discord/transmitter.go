@@ -180,7 +180,7 @@ func (trans DiscordTransmitter) HTMLCard(id int) string {
 }
 
 func (trans DiscordTransmitter) GetStorageValue(id int) structs.TransmitterStorage {
-	return structs.TransmitterStorage{Id: id, URL: trans.discord, TransmitterType: "discord", Active: trans.Active(), TransmitCount: trans.GetTransmitCount()}
+	return structs.TransmitterStorage{Id: id, URLorTOKEN: trans.discord, TransmitterType: "discord", Active: trans.Active(), TransmitCount: trans.GetTransmitCount()}
 }
 
 func (trans DiscordTransmitter) Active() bool {

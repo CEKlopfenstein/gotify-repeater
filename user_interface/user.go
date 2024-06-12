@@ -156,6 +156,7 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 		var transmitters = relay.GetTransmitters()
 		transmitter = transmitters[id]
+		logger.Println(transmitter)
 
 		ctx.Data(http.StatusOK, "text/html", []byte(transmitter.HTMLCard(id)))
 	})

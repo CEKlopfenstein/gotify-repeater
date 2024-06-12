@@ -1,0 +1,9 @@
+<form hx-post="transmitter-select" hx-target="this" hx-swap="outerHTML">
+    <input type="hidden" name="transmitter" value="{{.Type}}">
+    {{.HTMX}}
+    <div class="form-group">
+        <label>Access Token:</label>
+        <input type="text" name="pushbullet-token" value="">
+    </div>
+    <button class="btn btn-primary">Submit</button>
+</form>
