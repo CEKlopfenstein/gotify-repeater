@@ -1,11 +1,13 @@
 package transmitters
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/CEKlopfenstein/gotify-repeater/gotify_api"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
 	discordTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/discord"
+	discordadvanceTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/discordadvance"
 	logTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/log"
 	pushbulletTransmitter "github.com/CEKlopfenstein/gotify-repeater/transmitters/pushbullet"
 	"github.com/gin-gonic/gin"
@@ -53,17 +55,26 @@ var Types = map[string]TransmitterType{
 		CreationPage:        pushbulletTransmitter.NewTransmitterForm,
 		CreationPostHandler: pushbulletTransmitter.CreateTransmitterFromForm,
 		SetGlobalLogger:     pushbulletTransmitter.SetGlobalLogger,
+	}, "discord-advance": {
+		Name:                "discord-advance",
+		Full_Name:           "Discord Embeded Webhook",
+		CreationPage:        discordadvanceTransmitter.NewTransmitterForm,
+		CreationPostHandler: discordadvanceTransmitter.CreateTransmitterFromForm,
+		SetGlobalLogger:     discordadvanceTransmitter.SetGlobalLogger,
 	}}
 
 func RehydrateTransmitter(stored structs.TransmitterStorage) Transmitter {
 	if stored.TransmitterType == "discord" {
-		trans := discordTransmitter.Build(stored.URLorTOKEN, "Default Name", stored.Active, stored.TransmitCount)
+		trans := discordTransmitter.Build(stored.URLorTOKEN, fmt.Sprintf("Transmitter %d", stored.Id), stored.Active, stored.TransmitCount)
 		return &trans
 	} else if stored.TransmitterType == "log" {
 		trans := logTransmitter.Build(stored.Active, stored.TransmitCount)
 		return &trans
 	} else if stored.TransmitterType == "pushbullet" {
-		trans := pushbulletTransmitter.Build(stored.URLorTOKEN, "Default Name", stored.Active, stored.TransmitCount)
+		trans := pushbulletTransmitter.Build(stored.URLorTOKEN, fmt.Sprintf("Transmitter %d", stored.Id), stored.Active, stored.TransmitCount)
+		return &trans
+	} else if stored.TransmitterType == "discord-advance" {
+		trans := discordadvanceTransmitter.Build(stored.URLorTOKEN, fmt.Sprintf("Transmitter %d", stored.Id), stored.Active, stored.TransmitCount)
 		return &trans
 	}
 	return &logTransmitter.LogTransmittor{}

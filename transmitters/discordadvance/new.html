@@ -1,0 +1,10 @@
+<form hx-post="transmitter-select" hx-target="this" hx-swap="outerHTML">
+    <input type="hidden" name="transmitter" value="{{.Type}}">
+    {{.HTMX}}
+    <div>Note: This is currently more of a proof of concept and provides to benefits that the generic Discord Webhook Integration.</div>
+    <div class="form-group">
+        <label>Discord Web Hook:</label>
+        <input type="text" name="discord-url" value="">
+    </div>
+    <button class="btn btn-primary">Submit</button>
+</form>
