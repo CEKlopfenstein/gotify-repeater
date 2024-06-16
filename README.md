@@ -7,17 +7,18 @@ A "simple" [Gotify](https://gotify.net/) plugin that allows for the relaying of 
 ## Features
 - Graphical User Interface
    - Manage relay "transmitters"
-- Supports Discord Webhooks as a "transmitter" endpoint.
+- Supports mulitple "Transmitters"
+   - Discord
+   - Discord Advance (With Embeds)
+   - Pushbullet
 
 ## Motivation
 I have a few things that support Gotify for notifications but not something else I use. That and I'd like a centralized places to direct all the notifications within my homelab. Is this the best method? Who knows. But let's have fun doing it.
 
 ## Currently Planned Features
-- Advance Discord Webhook integration
 - More "Transmitter" Options
    - Secondary Gotify Instance
    - Telegram
-   - Pushbullet
    - Discord bot? (Extremely unlikely)
 - Forwarding Filters
 

@@ -10,3 +10,10 @@
     - Updated within the GUI once every 5 seconds currently.
 - Logs for the plugin spesifically are now visible within the UI.
     - Refreshes every 5 seconds
+- Implemented New Relay Transmitters.
+    - Discord Advance
+        - Makes use of Embed elements in Discord messages.
+        - Currently provides limited benefit over normal Discord Transmitter.
+    - Pushbullet
+- Updated README.md
+  - Removed certain planned features.
