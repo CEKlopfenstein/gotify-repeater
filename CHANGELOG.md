@@ -1,3 +1,6 @@
+## 2024.3.2
+Version Number Bump to rebuild for Gotify 2.5.0.
+
 ## 2024.2.36
 Improvements in automated build pipeline. Refactoring and Bugfixes. With a sprinkling of new features and functionality.
 

@@ -1,3 +1,6 @@
+### No Changes From 2024.2.36
+2024.3.2 is a rebuild to support Gotify 2.5.0. No Changes beyond that.
+
 ### General Improvements
 - Modified method of setting version number. Now provided at compile time through ldflags
 - Built and tested basic Release Generation Pipelines for both Prereleases and Proper releases.
