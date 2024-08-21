@@ -47,8 +47,10 @@ func (relay *Relay) Start() {
 		if attemptTick >= attemptLimit {
 			relay.logger.Printf("%s Limit Exceeded for checking HTTP(s) status\n", relay.userName)
 			return
+		}else{
+			relay.logger.Printf("%s Checking HTTP(s) Status in %dms", relay.userName, (100 * (2+attemptTick)))
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(time.Duration(100 * (attemptTick+2)) * time.Millisecond)
 		attemptTick++
 		_, check := relay.gotifyApi.GetServerInfo()
 		if check == nil {
