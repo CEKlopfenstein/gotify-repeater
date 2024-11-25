@@ -1,3 +1,6 @@
+## 2024.5.1
+- Version Bump to insure compatibility with 2.6.1
+
 ## 2024.4.2
 - Delay between attempted connections on enable now progressively increases.
     - Done to correct issue where it fails on a slow starting container. (Exceeded 10 seconds)
