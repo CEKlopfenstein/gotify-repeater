@@ -47,6 +47,9 @@ type DiscordHookInfo struct {
 	Name string
 }
 
+var descriptionCharacterLimit = 4096
+var titleCharacterLimit = 256
+
 func Build(discordHook string, name string, status bool, count int) DiscordAdvanceTransmitter {
 	var transmitter = DiscordAdvanceTransmitter{discord: discordHook}
 
@@ -144,6 +147,14 @@ func (trans *DiscordAdvanceTransmitter) Transmit(msg structs.GotifyMessageStruct
 	}
 
 	var discordEmbed = DiscordEmbedStructure{Title: msg.Title, Description: msg.Message}
+
+	if len(discordEmbed.Title) > titleCharacterLimit {
+		discordEmbed.Title = fmt.Sprintf("Original Title Exceeded %d character limit. Check Gotify for details.", titleCharacterLimit)
+	}
+
+	if len(discordEmbed.Description) > descriptionCharacterLimit {
+		discordEmbed.Description = fmt.Sprintf("Original description Exceeded %d character limit. Check Gotify for details.", descriptionCharacterLimit)
+	}
 
 	var discordPayload = DiscordWebhookPayload{Username: username, Embeds: []DiscordEmbedStructure{discordEmbed}}
 

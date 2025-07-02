@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/CEKlopfenstein/gotify-repeater/gotify_api"
 	"github.com/CEKlopfenstein/gotify-repeater/structs"
@@ -30,6 +31,8 @@ type DiscordWebhookPayload struct {
 type DiscordHookInfo struct {
 	Name string
 }
+
+var characterLimit = 2000
 
 func Build(discordHook string, name string, status bool, count int) DiscordTransmitter {
 	var transmitter = DiscordTransmitter{discord: discordHook}
@@ -127,7 +130,17 @@ func (trans *DiscordTransmitter) Transmit(msg structs.GotifyMessageStruct, serve
 		username = application.Name
 	}
 
-	var discordPayload = DiscordWebhookPayload{Username: username, Content: "# " + msg.Title + "\n\n" + msg.Message}
+	var webhookContent = fmt.Sprintf("# %s\n\n%s", strings.TrimSpace(msg.Title), strings.TrimSpace(msg.Message))
+
+	if len(webhookContent) > characterLimit {
+		webhookContent = fmt.Sprintf("# %s\n\n Unable to fit message within %d limit. Consult your gotify instance for more details.", strings.TrimSpace(msg.Title), characterLimit)
+	}
+
+	if len(webhookContent) > characterLimit {
+		webhookContent = fmt.Sprintf("Recieved message and title that are unable to fit message within %d limit. Consult your gotify instance for more details.", characterLimit)
+	}
+
+	var discordPayload = DiscordWebhookPayload{Username: username, Content: webhookContent}
 
 	discordBytePayload, err := json.Marshal(&discordPayload)
 	if err != nil {
