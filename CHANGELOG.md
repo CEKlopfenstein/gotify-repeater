@@ -1,3 +1,6 @@
+## 2025.8.1
+- Version Bump to ensure compatibility with 2.7.3
+
 ## 2025.7.1
 - Version Bump to ensure compatibility with 2.7.2
 
