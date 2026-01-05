@@ -5,7 +5,7 @@
 ### Bug Fixes
 - Fixed issue where Discord webhooks would fail due to the messages being to large exceeding the limits. They are now trimmed where possible and asked to refer to Gotify server for more detail.
 
-## 2026.9.1
+## 2026.9.2 
 - Version Bump to ensure compatibility with 2.8.0
 
 ## 2025.8.1
