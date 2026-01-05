@@ -1,5 +1,5 @@
 BUILDDIR=./build
-GOTIFY_VERSION=v2.7.3
+GOTIFY_VERSION=v2.8.0
 PLUGIN_NAME=cekwebhooks
 PLUGIN_ENTRY=plugin.go
 GO_VERSION=`cat $(BUILDDIR)/gotify-server-go-version`
