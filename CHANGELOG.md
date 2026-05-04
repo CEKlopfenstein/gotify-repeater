@@ -1,6 +1,8 @@
+## 2026.11.1
+- Version Bump to ensure compatibility with 2.9.1
+
 ## 2026.10.2
 - Version Bump to ensure compatibility with 2.9.0
-
 
 ## 2026.9.1
 - Version Bump to ensure compatibility with 2.8.0

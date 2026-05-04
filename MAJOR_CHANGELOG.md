@@ -1,1 +1,1 @@
-- Rebuilt plugin for Gotify 2.9.0
+- Rebuilt plugin for Gotify 2.9.1
