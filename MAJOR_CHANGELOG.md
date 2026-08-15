@@ -1,1 +1,1 @@
-- Rebuilt plugin for Gotify 3.0.0
+- Version Bump to ensure compatibility with 3.0.0
