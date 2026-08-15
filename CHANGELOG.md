@@ -1,3 +1,10 @@
+## 2026.13.3
+- The below changes are all related to changes in 3.0.0
+- API and UI no longer use headers to pass the client token. Cookies are now used.
+- Removed wrapper HTML which previously existed only to take a value stored in LocalStorage and pass it back as a header value.
+- Client names are now "unique" on creation.
+- When a client for the plugin is replace it is renamed and a experation timer is placed on it.
+
 ## 2026.12.2
 - Version Bump to ensure compatibility with 3.0.0
 
