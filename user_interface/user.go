@@ -2,7 +2,9 @@ package user_interface
 
 import (
 	"bytes"
+	"crypto/sha256"
 	_ "embed"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"log"
@@ -235,15 +237,20 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 	})
 
 	mux.PUT("/defaultToken", func(ctx *gin.Context) {
-		var cookieToken = ctx.GetString("token")
 		var token = ctx.PostForm("token")
 
+		logger.Println("Hello world")
 		if token == "new" {
-			currentToken := c.GetClientToken()
-			if internalGotifyApi.CheckToken(currentToken) == nil {
-				client := internalGotifyApi.FindClientFromToken(currentToken)
-				if len(client.Token) != 0 && client.Token != cookieToken && client.Name == "Relay Client" {
-					internalGotifyApi.DeleteClient(client.Id)
+			clientToken := c.GetClientToken()
+			h := sha256.New()
+			h.Write([]byte(clientToken))
+			expectedClientName := "Relay Client " + base64.StdEncoding.EncodeToString([]byte(h.Sum(nil)))[:16]
+			if internalGotifyApi.CheckToken(clientToken) == nil {
+				client := internalGotifyApi.FindClientFromName(expectedClientName)
+				logger.Println(client.Name)
+				if len(client.Name) != 0 {
+					// Round about method of "deleting" old clients. (Gotify may be updated later causing this to fail.)
+					internalGotifyApi.UpdateClient(client.Id, "Old Relay Client: Will Delete In 10 Seconds", 10)
 				}
 			}
 			newClient, err := internalGotifyApi.CreateClient("Relay Client")
@@ -253,6 +260,11 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 				return
 			}
 			token = newClient.Token
+
+			h.Reset()
+			h.Write([]byte(token))
+
+			newClient, _ = internalGotifyApi.UpdateClient(newClient.Id, "Relay Client "+base64.StdEncoding.EncodeToString([]byte(h.Sum(nil)))[:16], 0)
 		}
 
 		relay.UpdateToken(token)

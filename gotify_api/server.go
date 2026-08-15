@@ -237,6 +237,57 @@ func (server *GotifyApi) FindClientFromToken(token string) GotifyClientInfo {
 	return GotifyClientInfo{}
 }
 
+func (server *GotifyApi) FindClientFromName(name string) GotifyClientInfo {
+	body, err := server.request("/client", http.MethodGet, nil)
+	if err != nil {
+		server.logger.Println(err)
+		return GotifyClientInfo{}
+	}
+	var clients []GotifyClientInfo
+	err = json.Unmarshal(body, &clients)
+	if err != nil {
+		server.logger.Println(err)
+		return GotifyClientInfo{}
+	}
+
+	for i := 0; i < len(clients); i++ {
+		if clients[i].Name == name {
+			return clients[i]
+		}
+	}
+
+	return GotifyClientInfo{}
+}
+
+func (server *GotifyApi) UpdateClient(id int, name string, expireAfterInactivitySeconds int) (GotifyClientInfo, error) {
+	type updateClient struct {
+		Name             string `json:"name"`
+		ExpiresInSeconds int    `json:"expiresAfterInactivitySeconds"`
+	}
+
+	reqBody, err := json.Marshal(updateClient{Name: name, ExpiresInSeconds: expireAfterInactivitySeconds})
+
+	if err != nil {
+		server.logger.Println(err)
+		return GotifyClientInfo{}, err
+	}
+
+	body, err := server.request(fmt.Sprintf("/client/%d", id), http.MethodPut, reqBody)
+	if err != nil {
+		server.logger.Println(err)
+		return GotifyClientInfo{}, err
+	}
+
+	var client GotifyClientInfo
+	err = json.Unmarshal(body, &client)
+	if err != nil {
+		server.logger.Println(err)
+		return client, err
+	}
+
+	return client, nil
+}
+
 func (server *GotifyApi) DeleteClient(id int) {
 	_, err := server.request(fmt.Sprintf("/client/%d", id), http.MethodDelete, nil)
 	if err != nil {
