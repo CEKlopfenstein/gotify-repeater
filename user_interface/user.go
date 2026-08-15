@@ -20,9 +20,6 @@ import (
 //go:embed main.html
 var main string
 
-//go:embed wrapper.html
-var wrapper string
-
 //go:embed htmx.min.js
 var htmxMinJS string
 
@@ -62,18 +59,15 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 	})
 
 	mux.GET("/", func(ctx *gin.Context) {
-		var clientKey = ctx.Request.Header.Get("X-Gotify-Key")
-		if len(clientKey) == 0 {
-			tmpl, err := template.New("").Parse(wrapper)
-			if err != nil {
-				logger.Println(err)
-				ctx.Done()
-				return
-			}
-			err = tmpl.Execute(ctx.Writer, pageData)
-			if err != nil {
-				logger.Println(err)
-			}
+		var cookie, cookieError = ctx.Request.Cookie("gotify-client-token")
+		var clientKey = cookie.Value
+		if cookieError != nil {
+			logger.Println(cookieError)
+			ctx.Data(http.StatusUnauthorized, "text/html", []byte("Failed to parse/get gotify-client-token Cookie"))
+			ctx.Done()
+		} else if len(clientKey) == 0 {
+			logger.Println("gotify-client-token Cookie Missing")
+			ctx.Data(http.StatusUnauthorized, "text/html", []byte("gotify-client-token Cookie Missing"))
 			ctx.Done()
 		} else {
 			var server = relay.GetGotifyApi()
@@ -100,7 +94,8 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 	internalGotifyApi := gotify_api.SetupGotifyApi(hostname, "")
 	mux.Use(func(ctx *gin.Context) {
-		var clientKey = ctx.Request.Header.Get("X-Gotify-Key")
+		var cookie, _ = ctx.Request.Cookie("gotify-client-token")
+		var clientKey = cookie.Value
 		if len(clientKey) == 0 {
 			ctx.Data(http.StatusUnauthorized, "text/html", []byte("X-Gotify-Key Missing"))
 			ctx.Done()
@@ -224,30 +219,30 @@ func BuildInterface(basePath string, mux *gin.RouterGroup, relay *relay.Relay, h
 
 	mux.GET("/defaultToken", func(ctx *gin.Context) {
 		var token = c.GetClientToken()
-		if len(token) == 0 {
+		if len(token) == 0 || token == "null" {
 			ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
 			<div>No Token Set. Select an option below to set one.</div>
-			<button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='js:{"token":localStorage.getItem("gotify-login-key")}'>Use Current Client Token</button><button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
+			<button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='js:{"token":"`+ctx.GetString("token")+`"}'>Use Current Client Token</button><button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
 			</div>`))
 		} else {
 			ctx.Data(http.StatusOK, "text/html", []byte(`<div hx-target="this" hx-swap="outerHTML">
 			<div>Current Default Token: `+token+`</div>
 			<div>Use Options Below to Change Token</div>
-			<button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='js:{"token":localStorage.getItem("gotify-login-key")}'>Use Current Client Token</button><button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
+			<button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='js:{"token":"`+ctx.GetString("token")+`"}'>Use Current Client Token</button><button class="btn btn-secondary m-1" hx-put="defaultToken" hx-vals='{"token":"new"}'>Create Custom Client Token</button>
 			</div>`))
 		}
 
 	})
 
 	mux.PUT("/defaultToken", func(ctx *gin.Context) {
-		var headerToken = ctx.GetString("token")
+		var cookieToken = ctx.GetString("token")
 		var token = ctx.PostForm("token")
 
 		if token == "new" {
 			currentToken := c.GetClientToken()
 			if internalGotifyApi.CheckToken(currentToken) == nil {
 				client := internalGotifyApi.FindClientFromToken(currentToken)
-				if len(client.Token) != 0 && client.Token != headerToken && client.Name == "Relay Client" {
+				if len(client.Token) != 0 && client.Token != cookieToken && client.Name == "Relay Client" {
 					internalGotifyApi.DeleteClient(client.Id)
 				}
 			}

@@ -1,34 +1,75 @@
-<div class="text-white d-flex align-items-center flex-column width-limit">
-    <div class="bg-card p-3 rounded shadow m-3 w-100">
-        <h2>General Info</h2>
-        <div>
-            <div>Logged In Token: <span hx-get="getLoginToken" hx-trigger="load"></span></div>
-            <div hx-target="this" hx-swap="outerHTML">
-                <div hx-get="defaultToken" hx-trigger="load"></div>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gotify Relay</title>
+    <script src="{{.HtmxBasePath}}"></script>
+    <style>
+        .bg-backdrop {
+            background-color: #303030;
+        }
+
+        .bg-card {
+            background-color: #424242;
+        }
+
+        .width-limit {
+            max-width: -webkit-calc(800px - (30px * 2));
+            max-width: calc(800px - (30px * 2));
+            margin-right: auto;
+            margin-left: auto;
+            padding-right: 30px;
+            padding-left: 30px;
+        }
+    </style>
+    <link rel="stylesheet" href="{{.Bootstrap}}">
+    <script src="{{.MainJSPath}}"></script>
+</head>
+
+<body class="bg-backdrop">
+    <div id="header" class="bg-primary p-3">
+        <a href="/" class="link-light">
+            <h2>Gotify</h2>
+        </a>
+    </div>
+    <div class="text-white d-flex align-items-center flex-column width-limit">
+        <div class="bg-card p-3 rounded shadow m-3 w-100">
+            <h2>General Info</h2>
+            <div>
+                <div>Logged In Token: <span hx-get="getLoginToken" hx-trigger="load"></span></div>
+                <div hx-target="this" hx-swap="outerHTML">
+                    <div hx-get="defaultToken" hx-trigger="load"></div>
+                </div>
             </div>
         </div>
-    </div>
-    {{range .Cards}}
-    <div class="bg-card p-3 rounded shadow m-3 w-100">
-        <h2>{{.Title}}</h2>
-        {{.Body}}
-    </div>
-    {{end}}
-    <div hx-get="transmitters" hx-trigger="load" hx-swap="outerHTML">
-    </div>
-    <div id="newTransmitters" class="bg-card p-3 rounded shadow m-3 w-100">
-        <h2>New Transmitter</h2>
-        <label for="transmitter">Transmitter Type</label>
-        <select name="transmitter" id="transmitter" hx-get="transmitter-options" hx-trigger="load" hx-target="this" hx-swap="outerHTML">
-        </select>
-        <form>
+        {{range .Cards}}
+        <div class="bg-card p-3 rounded shadow m-3 w-100">
+            <h2>{{.Title}}</h2>
+            {{.Body}}
+        </div>
+        {{end}}
+        <div hx-get="transmitters" hx-trigger="load" hx-swap="outerHTML">
+        </div>
+        <div id="newTransmitters" class="bg-card p-3 rounded shadow m-3 w-100">
+            <h2>New Transmitter</h2>
+            <label for="transmitter">Transmitter Type</label>
+            <select name="transmitter" id="transmitter" hx-get="transmitter-options" hx-trigger="load" hx-target="this"
+                hx-swap="outerHTML">
+            </select>
+            <form>
 
-        </form>
-    </div>
-    <div id="logs" class="bg-card p-3 rounded shadow m-3 w-100">
-        <h2>Logs</h2>
-        <pre style="max-height: 30rem;"><code hx-get="logs" hx-swap="innerHTML" hx-trigger="load, every 5s">
+            </form>
+        </div>
+        <div id="logs" class="bg-card p-3 rounded shadow m-3 w-100">
+            <h2>Logs</h2>
+            <pre style="max-height: 30rem;"><code hx-get="logs" hx-swap="innerHTML" hx-trigger="load, every 5s">
 
         </code></pre>
+        </div>
     </div>
-</div>
+</body>
+
+</html>

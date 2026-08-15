@@ -62,7 +62,7 @@ func (server *GotifyApi) request(path string, method string, reqBody []byte) ([]
 	if err != nil {
 		return body, err
 	}
-	req.Header.Set("X-Gotify-Key", server.client_token)
+	req.AddCookie(&http.Cookie{Name: "gotify-client-token", Value: server.client_token})
 	if reader != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
